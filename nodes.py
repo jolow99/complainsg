@@ -1,6 +1,7 @@
 # nodes.py
 from pocketflow import Node
-from utils import call_llm
+from utils import call_llm, call_llm_stream
+import threading
 
 class ReceiveComplaintNode(Node):
     def exec(self, _):
@@ -96,3 +97,55 @@ Write a short, clear summary of the complaint as a single paragraph.
     def post(self, shared, prep_res, exec_res):
         shared["final_summary"] = exec_res
         return "default"
+    
+class StreamNode(Node):
+    def prep(self, shared):
+        prompt = "what is the capital of italy?" # hard coded prompt
+        print("Requesting stream...")
+        chunks_iterator = call_llm_stream(prompt)
+
+        interrupt_event = threading.Event()
+
+        def listen_for_enter():
+            input("Press ENTER anytime to stop...\n")
+            print("--- Enter pressed! Sending stop signal ---")
+            interrupt_event.set() 
+
+        print("Listener started...")
+        listener_thread = threading.Thread(target=listen_for_enter, daemon=True)
+        listener_thread.start()
+
+        # Pass the live feed, signal, and listener thread to the 'exec' step
+        return chunks_iterator, interrupt_event, listener_thread
+
+    def exec(self, prep_res):
+        chunks, interrupt_event, listener_thread = prep_res
+
+        print("Streaming response:")
+        stream_finished_normally = True 
+
+        # Loop through the live feed from the AI
+        for chunk in chunks:
+            if interrupt_event.is_set(): 
+                print("--- Interrupted by user ---")
+                stream_finished_normally = False 
+                break 
+
+            print(chunk, end="", flush=True) # Show text immediately
+
+        if stream_finished_normally:
+            print("\n--- Stream finished ---")
+
+        # Pass the signal flag and listener thread to cleanup
+        return interrupt_event, listener_thread
+def post(self, shared, prep_res, exec_res):
+        # Get the signal and listener from exec's results
+        interrupt_event, listener_thread = exec_res
+
+        # Ensure the listener thread stops cleanly
+        # Signal it to stop (if it wasn't already signaled)
+        interrupt_event.set()
+
+        # Wait briefly for the listener thread to finish
+        listener_thread.join(timeout=1.0)
+        print("Listener stopped.")

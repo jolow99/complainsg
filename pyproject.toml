@@ -8,4 +8,8 @@ dependencies = [
     "anthropic>=0.58.2",
     "pocketflow>=0.0.2",
     "python-dotenv>=1.1.1",
+    "requests>=2.32.3",
+    "fastapi>=0.115.8",
+    "uvicorn>=0.34.0",
+    "fastapi[standard]>=0.115.8",
 ]
