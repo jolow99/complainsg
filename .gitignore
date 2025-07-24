@@ -13,3 +13,5 @@ wheels/
 .venv
 agent-venv/
 
+frontend/.next
+frontend/node_modules

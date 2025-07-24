@@ -2,14 +2,10 @@ from typing import Union
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
-
-
-@app.get("/")
-def read_root():
-    return FileResponse("index.html")
-
+app.mount("/", StaticFiles(directory="frontend/.next", html=True), name="static")
 
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: Union[str, None] = None):

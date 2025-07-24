@@ -16,7 +16,7 @@ A conversational assistant for collecting, clarifying, and summarizing citizen c
 3. **User answers each question** until the assistant determines the complaint is “complete.”
 4. **A summary is generated** for the final submission.
 
-## Setup
+## Setup (CLI)
 
 1. **Clone the repository** and install dependencies:
    ```sh
@@ -27,10 +27,11 @@ A conversational assistant for collecting, clarifying, and summarizing citizen c
    pip install -r requirements.txt
    ```
 
-2. **Set your Anthropic API key:**
+2. **Set up API key:**
    - Create a `.env` file in the project root:
      ```
      ANTHROPIC_API_KEY=your_api_key_here
+     QWEN3_FREE=your_api_key_here
      ```
    - Or set the environment variable directly.
 
@@ -42,6 +43,21 @@ A conversational assistant for collecting, clarifying, and summarizing citizen c
    ```sh
    python main.py
    ```
+
+   for streaming use
+
+   ```sh
+   python main.py --stream
+   ```
+
+## Setup (Frontend)
+
+cd frontend
+npm run build
+
+## Run FastAPI server with frontend
+
+fastapi dev server.py
 
 ## Requirements
 
