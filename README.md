@@ -76,3 +76,9 @@ fastapi dev server.py
 ## License
 
 MIT
+
+
+## 4 ryan
+
+source agent-venv/bin/activate
+uv pip install -r pyproject.toml

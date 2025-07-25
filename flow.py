@@ -7,6 +7,7 @@ from nodes import (
     DecideFollowUpNode,
     SummarizerNode,
     StreamNode,
+    TestNode,
 )
 
 def create_complaint_flow():
@@ -24,6 +25,12 @@ def create_complaint_flow():
     decide - "complete" >> summary
 
     return Flow(start=receive)
+
+def basic_flow():
+    test = TestNode()
+    return Flow(start=test)
+    
+    
 
 def create_stream_flow():
     stream = StreamNode()

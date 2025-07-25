@@ -97,7 +97,7 @@ Write a short, clear summary of the complaint as a single paragraph.
     def post(self, shared, prep_res, exec_res):
         shared["final_summary"] = exec_res
         return "default"
-    
+
 class StreamNode(Node):
     def prep(self, shared):
         prompt = "what is the capital of italy?" # hard coded prompt
@@ -149,3 +149,14 @@ def post(self, shared, prep_res, exec_res):
         # Wait briefly for the listener thread to finish
         listener_thread.join(timeout=1.0)
         print("Listener stopped.")
+
+
+class TestNode(Node):
+    def prep(self, shared):
+        return shared["user_message"]
+    def exec(self, user_message):
+        prompt = f"User message: {user_message}\n\nPlease provide a helpful response to this message. Make it short and concise."
+        return call_llm(prompt)
+    def post(self, shared, prep_res, exec_res):
+        shared["llm_output"] = exec_res
+        return "default"

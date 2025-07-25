@@ -2,6 +2,10 @@ import os
 import anthropic 
 import requests
 import json
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def call_llm(prompt):
     anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
