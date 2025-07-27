@@ -1,5 +1,5 @@
 # flow.py
-from pocketflow import Flow
+from pocketflow import Flow, AsyncFlow
 from nodes import (
     ReceiveComplaintNode,
     GenerateFollowUpNode,
@@ -8,6 +8,7 @@ from nodes import (
     SummarizerNode,
     StreamNode,
     TestNode,
+    StreamingChatNode,
 )
 
 def create_complaint_flow():
@@ -35,3 +36,7 @@ def basic_flow():
 def create_stream_flow():
     stream = StreamNode()
     return Flow(start=stream)
+
+def create_streaming_chat_flow():
+    stream = StreamingChatNode()
+    return AsyncFlow(start=stream)
