@@ -6,7 +6,6 @@ from nodes import (
     CollectAnswerNode,
     DecideFollowUpNode,
     SummarizerNode,
-    StreamNode,
     TestNode,
     StreamingChatNode,
 )
@@ -32,10 +31,6 @@ def basic_flow():
     return Flow(start=test)
     
     
-
-def create_stream_flow():
-    stream = StreamNode()
-    return Flow(start=stream)
 
 def create_streaming_chat_flow():
     stream = StreamingChatNode()

@@ -189,6 +189,7 @@ function useMockChat(initMessages: Message[]): ChatHandler {
       console.log("Sending message to WebSocket:", message.content);
       wsRef.current.send(
         JSON.stringify({
+          type: "message",
           content: message.content,
         })
       );

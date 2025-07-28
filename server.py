@@ -6,8 +6,7 @@ import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from flow import create_stream_flow, basic_flow, create_streaming_chat_flow
-from utils import call_llm_stream
+from flow import basic_flow, create_streaming_chat_flow
 from websocket_types import (
     ConnectionMessage,
     MessageReceivedAck,
@@ -38,18 +37,17 @@ async def websocket_endpoint(websocket: WebSocket):
     shared_store = {
         "websocket": websocket,
         "conversation_history": [],
-        "user_message": "when is singapore independence day? tell me as much as you can about it",
+        "current_message": "Give me a short 1 sentence summary of the book 'The Great Gatsby'",
         "llm_output": ""
     }
     
-
     try:
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
-            
             print(f"Received message: {message}")
-            print(f"Shared store: {shared_store}")
+            if message["type"] == "message":
+                shared_store["current_message"] = message["content"]
             
             flow = create_streaming_chat_flow()
             await flow.run_async(shared_store)

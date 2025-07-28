@@ -48,8 +48,8 @@ async def call_llm_stream(prompt):
 
 async def stream_llm(
     messages,
-    model="qwen/qwen3-30b-a3b:free",
-    api_key=os.environ.get("QWEN3_FREE"),
+    model="qwen/qwen3-235b-a22b-thinking-2507",
+    api_key=os.environ.get("QWEN_THINKING"),
     base_url="https://openrouter.ai/api/v1",
 ):
     client = AsyncOpenAI(

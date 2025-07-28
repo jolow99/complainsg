@@ -99,76 +99,18 @@ Write a short, clear summary of the complaint as a single paragraph.
         shared["final_summary"] = exec_res
         return "default"
 
-class StreamNode(Node):
-    def prep(self, shared):
-        prompt = shared["user_message"] # hard coded prompt
-        print("Requesting stream...")
-        
-        chunks_iterator = call_llm_stream(prompt)
 
-        interrupt_event = threading.Event()
-
-        # Store the interrupt event in shared so WebSocket can access it
-        shared["interrupt_event"] = interrupt_event
-        
-        print("WebSocket interrupt listener ready...")
-
-        # Pass the live feed, signal, and shared_store to the 'exec' step
-        return chunks_iterator, interrupt_event, shared
-
-    def exec(self, prep_res):
-        chunks, interrupt_event, shared_store = prep_res
-
-        print("Streaming response:")
-        stream_finished_normally = True 
-
-        # Loop through the live feed from the AI
-        for chunk in chunks:
-            if interrupt_event.is_set(): 
-                print("--- Interrupted by WebSocket ---")
-                stream_finished_normally = False 
-                break 
-
-            print(chunk, end="", flush=True) # Show text immediately
-            
-            # Store chunk in shared_store for WebSocket streaming
-            shared_store["llm_output"] += chunk
-
-        if stream_finished_normally:
-            print("\n--- Stream finished ---")
-
-        # Return the full response for post processing
-        return shared_store["response"], stream_finished_normally
-    def post(self, shared, prep_res, exec_res):
-        # Get the response and completion status from exec's results
-        response, stream_finished_normally = exec_res
-
-        # Store the result in shared for the WebSocket to send back
-        shared["llm_output"] = response
-        shared["stream_completed"] = stream_finished_normally
-        
-        # Clean up the interrupt event from shared
-        if "interrupt_event" in shared:
-            del shared["interrupt_event"]
-        
-        print("Stream processing completed.")
-        return "default"
 
 class StreamingChatNode(AsyncNode):
     async def prep_async(self, shared):
-        print("StreamingChatNode prep_async")
-        user_message = shared.get("user_message", "")
+        user_message = shared.get("current_message", "")
         websocket = shared.get("websocket")
-        print(f"user_message: {user_message}")
-        print(f"websocket: {websocket}")
+        
         conversation_history = shared.get("conversation_history", [])
-        print(f"conversation_history: {conversation_history}")
         conversation_history.append({"role": "user", "content": user_message})
-        print(f"conversation_history: {conversation_history}")
         
         result = (conversation_history, websocket)
         print(f"prep_async returning: {result}")
-        print(f"type of result: {type(result)}")
         return result
     
     

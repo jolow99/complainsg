@@ -1,5 +1,5 @@
 # main.py
-from flow import create_stream_flow, basic_flow
+from flow import basic_flow, create_streaming_chat_flow
 from flow import create_complaint_flow
 from dotenv import load_dotenv
 import argparse
@@ -14,10 +14,10 @@ def main(stream: bool = False, basic: bool = False):
     }
 
     if stream:
-        flow = create_stream_flow()
+        flow = create_streaming_chat_flow()
         print("Running stream flow...")
         print("📝 Prompt:", "what is the capital of italy?")
-        flow.run(shared)
+        flow.run(shared)    
         
     elif basic:
         flow = basic_flow()
