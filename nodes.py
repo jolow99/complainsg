@@ -1,6 +1,6 @@
 # nodes.py
 from pocketflow import Node, AsyncNode
-from utils import call_llm, call_llm_stream, stream_llm
+from utils import call_llm, call_llm_stream, stream_llm, socket_send, socket_loop
 import threading
 import json
 
@@ -103,40 +103,25 @@ Write a short, clear summary of the complaint as a single paragraph.
 
 class StreamingChatNode(AsyncNode):
     async def prep_async(self, shared):
+        
         user_message = shared.get("current_message", "")
         websocket = shared.get("websocket")
         
         conversation_history = shared.get("conversation_history", [])
         conversation_history.append({"role": "user", "content": user_message})
         
-        result = (conversation_history, websocket)
-        print(f"prep_async returning: {result}")
-        return result
-    
-    
+        return (conversation_history, websocket)
     
     async def exec_async(self, prep_res):
-
         messages, websocket = prep_res
-
-        await websocket.send_text(json.dumps({"type": "start", "content": ""}))
-        full_response = ""  
-        print(f"messages: {messages}")
-        async for chunk_content in stream_llm(messages):
-            full_response += chunk_content
-            print(chunk_content, end="", flush=True)
-            await websocket.send_text(json.dumps({
-                "type": "chunk", 
-                "content": chunk_content
-            }))
-        
-        await websocket.send_text(json.dumps({"type": "end", "content": ""}))
-        
-        return full_response, websocket
+        await socket_send(websocket, "start", "")
+        full_response = await socket_loop(messages, websocket)
+        await socket_send(websocket, "end", "")
+        return full_response
         
     
-    async def post_async(self, shared, prep_res, exec_res):
-        full_response, websocket = exec_res        
+    async def post_async(self, shared, _, exec_res):
+        full_response = exec_res        
         conversation_history = shared.get("conversation_history", [])
         conversation_history.append({"role": "assistant", "content": full_response})
         shared["conversation_history"] = conversation_history

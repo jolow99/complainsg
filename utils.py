@@ -68,3 +68,13 @@ async def stream_llm(
     async for chunk in stream:
         if chunk.choices[0].delta.content is not None:
             yield chunk.choices[0].delta.content
+
+async def socket_send(websocket, type, content):
+    await websocket.send_text(json.dumps({"type": type, "content": content}))
+
+async def socket_loop(messages, websocket):
+    full_response = ""
+    async for chunk_content in stream_llm(messages):
+        full_response += chunk_content
+        await socket_send(websocket, "chunk", chunk_content)
+    return full_response
