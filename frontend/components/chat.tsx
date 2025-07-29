@@ -4,6 +4,8 @@ import {
   ChatHandler,
   ChatSection as ChatSectionUI,
   Message,
+  ChatMessages,
+  ChatInput,
 } from "@llamaindex/chat-ui";
 
 import "@llamaindex/chat-ui/styles/markdown.css";
@@ -17,19 +19,29 @@ export function ChatSection() {
   // You can replace the handler with a useChat hook from Vercel AI SDK
   const handler = useMockChat(initialMessages);
   return (
-    <div className="w-1/2 flex max-h-[80vh] flex-col gap-6 overflow-y-auto">
+    <div className="w-1/2 flex max-h-[80vh] flex-col gap-6 overflow-y-auto" style={{ fontFamily: 'StyreneB-Regular' }}>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Chat Interface</h2>
-        {handler.isLoading && (
-          <button
-            onClick={() => {}}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-          >
-            Stop Generation
-          </button>
-        )}
       </div>
-      <ChatSectionUI handler={handler} />
+      <ChatSectionUI handler={handler}>
+      <ChatMessages className="bg-white/80 backdrop-blur rounded-lg shadow-lg">
+        <ChatMessages.List className="space-y-6 p-6">
+          {/* Custom message rendering */}
+        </ChatMessages.List>
+      </ChatMessages>
+      
+      <ChatInput className="bg-white border-2 border-blue-200 rounded-xl p-4">
+        <ChatInput.Form className="flex items-end gap-3">
+          <ChatInput.Field 
+            className="flex-1 border-none bg-gray-50 rounded-lg px-4 py-2"
+            placeholder="Ask me anything..."
+          />
+          <ChatInput.Submit className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2">
+            Send
+          </ChatInput.Submit>
+        </ChatInput.Form>
+      </ChatInput>
+      </ChatSectionUI>
     </div>
   );
 }
