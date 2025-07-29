@@ -91,7 +91,28 @@ async def socket_loop(prompt, websocket):
     # In the future, we could look into using the entire conversation history to generate the next question, rather than just a single prompt
     messages = [{"system": "You are a dog assistant. You are helpful and friendly, before every reply, make sure you saw WOOF WOOF!.", "role": "user", "content": prompt}]
     full_response = ""
-    async for chunk_content in stream_llm_async(messages):
-        full_response += chunk_content
-        await socket_send(websocket, "chunk", chunk_content)
-    return full_response
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        async for chunk_content in stream_llm_async(messages):
+            if chunk_content == "":
+                continue
+            full_response += chunk_content
+            print(f"chunk_content: {chunk_content}")
+            await socket_send(websocket, "chunk", chunk_content)
+        
+        # Check if response is empty or just whitespace
+        if full_response.strip():
+            return full_response
+        
+        # Empty response, retry with a more explicit prompt
+        retry_count += 1
+        if retry_count < max_retries:
+            print(f"Empty response received, retrying... (attempt {retry_count + 1}/{max_retries})")
+            # Add a more explicit prompt for retry
+            messages = [{"system": "You are a dog assistant. You are helpful and friendly, before every reply, make sure you saw WOOF WOOF!. IMPORTANT: You must provide a response.", "role": "user", "content": f"{prompt} (Please provide a response)"}]
+            full_response = ""
+    
+    # If all retries failed, return a fallback response
+    return "I'm having trouble thinking of a response right now. Could you try asking me something else?"

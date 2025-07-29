@@ -6,6 +6,7 @@ import {
   Message,
   ChatMessages,
   ChatInput,
+  ChatMessage,
 } from "@llamaindex/chat-ui";
 
 import "@llamaindex/chat-ui/styles/markdown.css";
@@ -18,29 +19,45 @@ const initialMessages: Message[] = [];
 export function ChatSection() {
   // You can replace the handler with a useChat hook from Vercel AI SDK
   const handler = useMockChat(initialMessages);
+  const { messages } = handler;
   return (
-    <div className="w-1/2 flex max-h-[80vh] flex-col gap-6 overflow-y-auto" style={{ fontFamily: 'StyreneB-Regular' }}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Chat Interface</h2>
-      </div>
-      <ChatSectionUI handler={handler}>
-      <ChatMessages className="bg-white/80 backdrop-blur rounded-lg shadow-lg">
-        <ChatMessages.List className="space-y-6 p-6">
-          {/* Custom message rendering */}
-        </ChatMessages.List>
-      </ChatMessages>
-      
-      <ChatInput className="bg-white border-2 border-blue-200 rounded-xl p-4">
-        <ChatInput.Form className="flex items-end gap-3">
-          <ChatInput.Field 
-            className="flex-1 border-none bg-gray-50 rounded-lg px-4 py-2"
-            placeholder="Ask me anything..."
-          />
-          <ChatInput.Submit className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2">
-            Send
-          </ChatInput.Submit>
-        </ChatInput.Form>
-      </ChatInput>
+    <div
+      className="w-1/2 flex max-h-[80vh] flex-col gap-6 overflow-y-auto"
+      style={{ fontFamily: "StyreneB-Regular", color: "#FFFFFA" }}
+    >
+      <ChatSectionUI handler={handler} className="chat-section-bg">
+        <ChatMessages className="rounded-xl backdrop-blur rounded-lg shadow-lg bg-messages-padding">
+          <ChatMessages.List className="p-6 rounded-lg bg-messages color-white">
+            {messages.map((message, index) => (
+              <ChatMessage
+                key={index}
+                message={message}
+                isLast={index === messages.length - 1}
+              >
+              </ChatMessage>
+            ))}
+            <ChatMessages.Empty
+              heading="Welcome to ComplainSG!"
+              subheading="Start a feedback session with us by typing below"
+            />
+
+            <ChatMessages.Loading>
+              <div className="animate-pulse">Thinking...</div>
+            </ChatMessages.Loading>
+          </ChatMessages.List>
+        </ChatMessages>
+
+        <ChatInput className="rounded-xl backdrop-blur rounded-lg shadow-lg bg-messages-padding">
+          <ChatInput.Form className="flex items-end gap-3">
+            <ChatInput.Field
+              className="flex-1 border-none rounded-lg px-4 py-2"
+              placeholder="Ask me anything..."
+            />
+            <ChatInput.Submit className="text-white rounded-lg py-2 px-8">
+              Send
+            </ChatInput.Submit>
+          </ChatInput.Form>
+        </ChatInput>
       </ChatSectionUI>
     </div>
   );
@@ -75,14 +92,17 @@ function useMockChat(initMessages: Message[]): ChatHandler {
 
         // Handle welcome message
         if (data.type === "connection") {
-          console.log("🔵 setMessages called from: WebSocket connection message");
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "assistant",
-              content: data.message,
-            },
-          ]);
+          console.log(
+            "🔵 setMessages called from: WebSocket connection message"
+          );
+          console.log(messages);
+          // setMessages((prev) => [
+          //   ...prev,
+          //   {
+          //     role: "assistant",
+          //     content: data.message,
+          //   },
+          // ]);
         }
 
         // Handle message received acknowledgment
@@ -127,7 +147,6 @@ function useMockChat(initMessages: Message[]): ChatHandler {
           });
         }
 
-
         // Handle stream completion
         if (data.type === "stream_complete") {
           // Stream is complete, no additional action needed
@@ -136,7 +155,9 @@ function useMockChat(initMessages: Message[]): ChatHandler {
 
         // Handle legacy llm_output (fallback)
         if (data.type === "llm_output") {
-          console.log("🔵 setMessages called from: WebSocket llm_output message");
+          console.log(
+            "🔵 setMessages called from: WebSocket llm_output message"
+          );
           setMessages((prev) => [
             ...prev,
             {
@@ -148,7 +169,9 @@ function useMockChat(initMessages: Message[]): ChatHandler {
 
         // Handle interrupt acknowledgment
         if (data.type === "interrupt_acknowledged") {
-          console.log("🔵 setMessages called from: WebSocket interrupt_acknowledged message");
+          console.log(
+            "🔵 setMessages called from: WebSocket interrupt_acknowledged message"
+          );
           setMessages((prev) => [
             ...prev,
             {
@@ -208,7 +231,9 @@ function useMockChat(initMessages: Message[]): ChatHandler {
       );
     } else {
       // Fallback if WebSocket is not connected
-      console.log("🔵 setMessages called from: append function (WebSocket fallback)");
+      console.log(
+        "🔵 setMessages called from: append function (WebSocket fallback)"
+      );
       setMessages((prev) => [
         ...prev,
         {

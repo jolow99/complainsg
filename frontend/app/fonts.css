@@ -1,0 +1,83 @@
+@font-face {
+  font-family: 'StyreneB-Black';
+  src: url('/fonts/StyreneB/StyreneB-Black.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StyreneB-BlackItalic';
+  src: url('/fonts/StyreneB/StyreneB-BlackItalic.otf') format('opentype');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'StyreneB-Bold';
+  src: url('/fonts/StyreneB/StyreneB-Bold.otf') format('opentype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StyreneB-BoldItalic';
+  src: url('/fonts/StyreneB/StyreneB-BoldItalic.otf') format('opentype');
+  font-weight: bold;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'StyreneB-Light';
+  src: url('/fonts/StyreneB/StyreneB-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StyreneB-LightItalic';
+  src: url('/fonts/StyreneB/StyreneB-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'StyreneB-Medium';
+  src: url('/fonts/StyreneB/StyreneB-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StyreneB-MediumItalic';
+  src: url('/fonts/StyreneB/StyreneB-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'StyreneB-Regular';
+  src: url('/fonts/StyreneB/StyreneB-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StyreneB-RegularItalic';
+  src: url('/fonts/StyreneB/StyreneB-RegularItalic.otf') format('opentype');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'StyreneB-Thin';
+  src: url('/fonts/StyreneB/StyreneB-Thin.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'StyreneB-ThinItalic';
+  src: url('/fonts/StyreneB/StyreneB-ThinItalic.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+} 

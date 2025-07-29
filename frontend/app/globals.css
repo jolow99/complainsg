@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./fonts.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -43,109 +44,25 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-@font-face {
-  font-family: 'StyreneB-Black';
-  src: url('/fonts/StyreneB/StyreneB-Black.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'StyreneB-BlackItalic';
-  src: url('/fonts/StyreneB/StyreneB-BlackItalic.otf') format('opentype');
-  font-weight: normal;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'StyreneB-Bold';
-  src: url('/fonts/StyreneB/StyreneB-Bold.otf') format('opentype');
-  font-weight: bold;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'StyreneB-BoldItalic';
-  src: url('/fonts/StyreneB/StyreneB-BoldItalic.otf') format('opentype');
-  font-weight: bold;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'StyreneB-Light';
-  src: url('/fonts/StyreneB/StyreneB-Light.otf') format('opentype');
-  font-weight: 300;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'StyreneB-LightItalic';
-  src: url('/fonts/StyreneB/StyreneB-LightItalic.otf') format('opentype');
-  font-weight: 300;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'StyreneB-Medium';
-  src: url('/fonts/StyreneB/StyreneB-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'StyreneB-MediumItalic';
-  src: url('/fonts/StyreneB/StyreneB-MediumItalic.otf') format('opentype');
-  font-weight: 500;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'StyreneB-Regular';
-  src: url('/fonts/StyreneB/StyreneB-Regular.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'StyreneB-RegularItalic';
-  src: url('/fonts/StyreneB/StyreneB-RegularItalic.otf') format('opentype');
-  font-weight: normal;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: 'StyreneB-Thin';
-  src: url('/fonts/StyreneB/StyreneB-Thin.otf') format('opentype');
-  font-weight: 100;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'StyreneB-ThinItalic';
-  src: url('/fonts/StyreneB/StyreneB-ThinItalic.otf') format('opentype');
-  font-weight: 100;
-  font-style: italic;
-}
-
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.147 0.004 49.25);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.147 0.004 49.25);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.147 0.004 49.25);
-  --primary: oklch(0.216 0.006 56.043);
+  --background: #3C3C3C;
+  --foreground: #4c4c4c;
+  --card: #4c4c4c;
+  --card-foreground: #4c4c4c;
+  --popover: #4c4c4c;
+  --popover-foreground: #4c4c4c;
+  --primary: #CD3642;
   --primary-foreground: oklch(0.985 0.001 106.423);
-  --secondary: oklch(0.97 0.001 106.424);
+  --secondary: #4c4c4c;
   --secondary-foreground: oklch(0.216 0.006 56.043);
   --muted: oklch(0.97 0.001 106.424);
-  --muted-foreground: oklch(0.553 0.013 58.071);
+  --muted-foreground: #8c8c8c;
   --accent: oklch(0.97 0.001 106.424);
   --accent-foreground: oklch(0.216 0.006 56.043);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.923 0.003 48.717);
-  --input: oklch(0.923 0.003 48.717);
+  --border: #4c4c4c;
+  --input: #4c4c4c;
   --ring: oklch(0.709 0.01 56.259);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -160,6 +77,19 @@
   --sidebar-accent-foreground: oklch(0.216 0.006 56.043);
   --sidebar-border: oklch(0.923 0.003 48.717);
   --sidebar-ring: oklch(0.709 0.01 56.259);
+}
+
+.bg-messages{
+  background-color: #424242;
+  color: #EAEAEA;
+}
+
+.bg-messages-padding{
+  background-color: #2c2c2c;
+}
+
+.bg-accent{
+  background-color: #7f3642;
 }
 
 .dark {
