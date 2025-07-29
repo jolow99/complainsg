@@ -29,33 +29,24 @@ async def websocket_endpoint(websocket: WebSocket):
     # Send welcome message on connection open
     welcome_message: ConnectionMessage = {
         "type": "connection",
-        "message": "WebSocket connection established successfully!"
+        "message": "Hello! I'm here to help you with your complaint. Please describe your complaint in detail!"
     }
     await websocket.send_text(json.dumps(welcome_message))
     
     # Initialize conversation history for this connection
     shared_store = {
+        "complaint": "",
         "websocket": websocket,
         "conversation_history": [],
-        "current_message": "Give me a short 1 sentence summary of the book 'The Great Gatsby'",
-        "llm_output": ""
+        "latest_user_message": "",
+        "latest_assistant_message": "",
+        "status": "continue",
+        "final_summary": ""
     }
-    
-    try:
-        while True:
-            data = await websocket.receive_text()
-            message = json.loads(data)
-            print(f"Received message: {message}")
-            if message["type"] == "message":
-                shared_store["current_message"] = message["content"]
-            
-            flow = create_streaming_chat_flow()
-            await flow.run_async(shared_store)
-            
-            
-    except WebSocketDisconnect:
-            pass
-    
 
+    flow = create_streaming_chat_flow()
+    await flow.run_async(shared_store)
+            
+            
     
 app.mount("/", StaticFiles(directory="frontend/.next", html=True), name="static")

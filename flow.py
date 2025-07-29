@@ -7,7 +7,11 @@ from nodes import (
     DecideFollowUpNode,
     SummarizerNode,
     TestNode,
-    StreamingChatNode,
+    GenerateFollowUpAsyncNode,
+    DecisionNode,
+    EntryNode,
+    AwaitAnswerNode,
+    AsyncSummarizerNode,
 )
 
 def create_complaint_flow():
@@ -33,5 +37,18 @@ def basic_flow():
     
 
 def create_streaming_chat_flow():
-    stream = StreamingChatNode()
-    return AsyncFlow(start=stream)
+    entry = EntryNode()
+    await_answer = AwaitAnswerNode()
+    decision = DecisionNode()
+    generate = GenerateFollowUpAsyncNode()
+    summarizer = AsyncSummarizerNode()
+    
+    entry >> generate
+    generate >> await_answer
+    await_answer >> decision
+    decision - "continue" >> generate
+    decision - "complete" >> summarizer
+            
+    # should be entry (recieve) to generate (send) to await (receive) to decision (think) to generate(send)/summarise(send)
+    
+    return AsyncFlow(start=entry)

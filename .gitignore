@@ -15,3 +15,6 @@ agent-venv/
 
 frontend/.next
 frontend/node_modules
+
+.cursor
+run_servers.sh

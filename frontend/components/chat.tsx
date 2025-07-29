@@ -115,6 +115,7 @@ function useMockChat(initMessages: Message[]): ChatHandler {
           });
         }
 
+
         // Handle stream completion
         if (data.type === "stream_complete") {
           // Stream is complete, no additional action needed
