@@ -3,7 +3,6 @@ import anthropic
 import requests
 import json
 from dotenv import load_dotenv
-import httpx
 from openai import AsyncOpenAI
 
 # Load environment variables from .env file

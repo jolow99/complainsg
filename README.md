@@ -19,27 +19,33 @@ A conversational assistant for collecting, clarifying, and summarizing citizen c
 ## Setup (CLI)
 
 1. **Clone the repository** and install dependencies:
-   ```sh
-   uv pip install -r pyproject.toml
-   ```
-   Or, if you use `pip`:
-   ```sh
-   pip install -r requirements.txt
-   ```
+   uv pip install -r pyproject.toml && cd frontend && npm install 
+   
 
 2. **Set up API key:**
+
    - Create a `.env` file in the project root:
      ```
      ANTHROPIC_API_KEY=your_api_key_here
-     QWEN3_FREE=your_api_key_here
+     QWEN_30B=your_api_key_here
+     QWEN_THINKING=your_api_key_here
      ```
    - Or set the environment variable directly.
 
 3. **Run the app:**
+    fastapi run dev (backend)
+
+    cd frontend && npm run dev
+
+
+4. (Alterantively) *Run the CLI version**
+
    ```sh
    uv run main.py
    ```
+
    Or:
+
    ```sh
    python main.py
    ```
@@ -50,14 +56,6 @@ A conversational assistant for collecting, clarifying, and summarizing citizen c
    python main.py --stream
    ```
 
-## Setup (Frontend)
-
-cd frontend
-npm run build
-
-## Run FastAPI server with frontend
-
-fastapi dev server.py
 
 ## Requirements
 
@@ -76,7 +74,6 @@ fastapi dev server.py
 ## License
 
 MIT
-
 
 ## 4 ryan
 
