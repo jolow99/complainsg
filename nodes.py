@@ -9,6 +9,7 @@ class EntryNodeAsync(AsyncNode):
     async def prep_async(self, shared):
         print("ENTRY NODE PREP")
         data = await shared["websocket"].receive_text()
+        await shared["websocket"].send_text(json.dumps({"type": "message_received", "content": ""}))
         return data
     
     async def exec_async(self, inputs):
@@ -62,6 +63,7 @@ class AwaitAnswerNodeAsync(AsyncNode):
     async def prep_async(self, shared):
         print("AWAIT ANSWER NODE PREP")
         data = await shared['websocket'].receive_text()
+        await shared['websocket'].send_text(json.dumps({"type": "message_received", "content": ""}))
         return data
     async def exec_async(self, inputs):
         message = json.loads(inputs)

@@ -107,6 +107,8 @@ function useMockChat(initMessages: Message[]): ChatHandler {
 
         // Handle message received acknowledgment
         if (data.type === "message_received") {
+          console.log("setMessage: Message Received");
+          setIsLoading(true);
           // Temporarily remove the acknowledgment message from UI for cleaner chat
           // setMessages(prev => [...prev, {
           //   role: 'assistant',
@@ -116,7 +118,9 @@ function useMockChat(initMessages: Message[]): ChatHandler {
 
         // Handle stream chunks (word-by-word streaming)
         if (data.type === "chunk") {
-          console.log("🔵 setMessages called from: WebSocket chunk message");
+          if (isLoading) {
+            setIsLoading(false);
+          }
           // Update or create a new assistant message
           setMessages((prev) => {
             console.log("Received chunk:", data.content);
@@ -153,34 +157,6 @@ function useMockChat(initMessages: Message[]): ChatHandler {
           console.log("Stream completed");
         }
 
-        // Handle legacy llm_output (fallback)
-        if (data.type === "llm_output") {
-          console.log(
-            "🔵 setMessages called from: WebSocket llm_output message"
-          );
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "assistant",
-              content: data.content,
-            },
-          ]);
-        }
-
-        // Handle interrupt acknowledgment
-        if (data.type === "interrupt_acknowledged") {
-          console.log(
-            "🔵 setMessages called from: WebSocket interrupt_acknowledged message"
-          );
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "assistant",
-              content: data.message,
-            },
-          ]);
-        }
-
         // Handle errors
         if (data.type === "error") {
           console.log("🔵 setMessages called from: WebSocket error message");
@@ -213,11 +189,12 @@ function useMockChat(initMessages: Message[]): ChatHandler {
     };
   }, []);
 
+  // This is called when the user sends a message
   const append = async (message: Message) => {
     setIsLoading(true);
 
     // Add user message to chat
-    console.log("🔵 setMessages called from: append function (user message)");
+    console.log("setMessage: Append", message.content);
     setMessages((prev) => [...prev, message]);
 
     // Send message to WebSocket if connected
