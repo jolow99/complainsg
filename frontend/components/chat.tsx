@@ -8,25 +8,40 @@ import {
   ChatInput,
   ChatMessage,
 } from "@llamaindex/chat-ui";
+import { useState, useEffect, useRef } from "react";
 
 import "@llamaindex/chat-ui/styles/markdown.css";
 import "@llamaindex/chat-ui/styles/pdf.css";
 import "@llamaindex/chat-ui/styles/editor.css";
-import { useState, useEffect, useRef } from "react";
 
-const initialMessages: Message[] = [
-];
+import { db, firebaseConfig } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore"; 
+
+
+const initialMessages: Message[] = [];
 
 export function ChatSection() {
-
+  console.log("firebaseConfig: ", firebaseConfig);
+  try {
+    addDoc(collection(db, "users"), {
+      first: "Ada",
+      last: "Lovelace",
+      born: 1815
+    });
+  } catch (e) {
+    console.error("Error adding document: ", e);
+  }
   // You can replace the handler with a useChat hook from Vercel AI SDK
-    const handler = useMockChat(initialMessages);
+  const handler = useMockChat(initialMessages);
   return (
     <div
       className="w-1/2 flex max-h-[80vh] flex-col gap-6 "
       style={{ fontFamily: "StyreneB-Regular", color: "#FFFFFA" }}
     >
-      <ChatSectionUI handler={handler} className="chat-section-bg overflow-auto">
+      <ChatSectionUI
+        handler={handler}
+        className="chat-section-bg overflow-auto"
+      >
         <ChatMessages className="rounded-xl backdrop-blur rounded-lg shadow-lg bg-messages-padding">
           <ChatMessages.List className="p-6 rounded-lg bg-messages color-white">
             {handler.messages.map((message, index) => (
@@ -34,8 +49,7 @@ export function ChatSection() {
                 key={index}
                 message={message}
                 isLast={index === handler.messages.length - 1}
-              >
-              </ChatMessage>
+              ></ChatMessage>
             ))}
             <ChatMessages.Empty
               heading="Welcome to ComplainSG!"
@@ -54,7 +68,10 @@ export function ChatSection() {
               className="flex-1 border-none rounded-lg px-4 py-2"
               placeholder="Ask me anything..."
             />
-            <ChatInput.Submit disabled={handler.isLoading} className="text-white rounded-lg py-2 px-8">
+            <ChatInput.Submit
+              disabled={handler.isLoading}
+              className="text-white rounded-lg py-2 px-8"
+            >
               Send
             </ChatInput.Submit>
           </ChatInput.Form>
@@ -190,7 +207,6 @@ function useMockChat(initMessages: Message[]): ChatHandler {
 
   // This is called when the user sends a message
   const append = async (message: Message) => {
-
     // Add user message to chat
     console.log("setMessage: Append", message.content);
     setMessages((prev) => [...prev, message]);
