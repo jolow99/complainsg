@@ -92,6 +92,7 @@ async def socket_loop(prompt, websocket):
     full_response = ""
     max_retries = 3
     retry_count = 0
+    await socket_send(websocket, "starting_stream", "")
     
     while retry_count < max_retries:
         async for chunk_content in stream_llm_async(messages):
@@ -103,15 +104,16 @@ async def socket_loop(prompt, websocket):
         
         # Check if response is empty or just whitespace
         if full_response.strip():
+            print(f"stream_complete: {full_response}")
+            await socket_send(websocket, "stream_complete", full_response)
             return full_response
         
         # Empty response, retry with a more explicit prompt
         retry_count += 1
         if retry_count < max_retries:
-            print(f"Empty response received, retrying... (attempt {retry_count + 1}/{max_retries})")
-            # Add a more explicit prompt for retry
-            messages = [{"system": "You are a dog assistant. You are helpful and friendly, before every reply, make sure you saw WOOF WOOF!. IMPORTANT: You must provide a response.", "role": "user", "content": f"{prompt} (Please provide a response)"}]
-            full_response = ""
+            await socket_send(websocket, "error", "Retrying...")
+
+    await socket_send(websocket, "error", "Max retries reached for response generation. Failure at socket_loop level")
     
     # If all retries failed, return a fallback response
-    return "I'm having trouble thinking of a response right now. Could you try asking me something else?"
+    return "default"

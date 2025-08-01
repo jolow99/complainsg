@@ -14,9 +14,7 @@ class EntryNodeAsync(AsyncNode):
     
     async def exec_async(self, inputs):
         print("ENTRY NODE EXEC")
-        print(f"inputs: {inputs}")
         message = json.loads(inputs)
-        print(f"msg: {message}")
         return message
     
     async def post_async(self, shared, prep_res, exec_res):
@@ -40,16 +38,13 @@ class GenerateFollowUpNodeAsync(AsyncNode):
         
     async def exec_async(self, inputs):
         print("GENERATE FOLLOW UP NODE EXEC")
-        print(f"inputs: {inputs}")        
         prompt = f"""
 Complaint: {inputs['complaint']}
 Follow-up Q&A so far: {inputs['conversation_history']}
 Suggest the next clarifying question to better understand this complaint.
 Only output the question.
 """
-        print(f"PROMPT: {prompt}")
         response = await socket_loop(prompt, inputs["websocket"])
-        print(f"RESPONSE: {response}")
         return response
 
     async def post_async(self, shared, prep_res, exec_res):
@@ -67,7 +62,6 @@ class AwaitAnswerNodeAsync(AsyncNode):
         return data
     async def exec_async(self, inputs):
         message = json.loads(inputs)
-        print(f"msg: {message}")
         return message
     async def post_async(self, shared, prep_res, exec_res):
         print("AWAIT ANSWER NODE POST")
@@ -88,7 +82,6 @@ class DecisionNodeAsync(AsyncNode):
 
     async def exec_async(self, inputs):
         print("DECISION NODE EXEC")
-        print(f"inputs: {inputs}")
         prompt = f"""
 Last message: {inputs['last_message']}
 Conversation history: {inputs['conversation_history']}
@@ -100,7 +93,6 @@ Respond with one word: "complete" or "continue".
 
     async def post_async(self, shared, prep_res, exec_res):
         print("DECISION NODE POST")
-        print(f"exec_res: {exec_res}")
         shared["status"] = exec_res.lower()
         return shared["status"]  # either "complete" or "continue"
     
@@ -132,6 +124,5 @@ Write a short, clear summary of the complaint as a single paragraph.
 
     async def post_async(self, shared, prep_res, exec_res):
         print(f"ASYNC SUMMARIZER NODE POST")
-        print(f"final summary: {exec_res}")
         shared["final_summary"] = exec_res
         return "default"

@@ -14,23 +14,11 @@ import "@llamaindex/chat-ui/styles/markdown.css";
 import "@llamaindex/chat-ui/styles/pdf.css";
 import "@llamaindex/chat-ui/styles/editor.css";
 
-import { db, firebaseConfig } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore"; 
-
+import { saveChatToDB } from "@/lib/database";
 
 const initialMessages: Message[] = [];
 
 export function ChatSection() {
-  console.log("firebaseConfig: ", firebaseConfig);
-  try {
-    addDoc(collection(db, "users"), {
-      first: "Ada",
-      last: "Lovelace",
-      born: 1815
-    });
-  } catch (e) {
-    console.error("Error adding document: ", e);
-  }
   // You can replace the handler with a useChat hook from Vercel AI SDK
   const handler = useMockChat(initialMessages);
   return (
@@ -95,6 +83,8 @@ function useMockChat(initMessages: Message[]): ChatHandler {
   const [isLoading, setIsLoading] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
+
+
   useEffect(() => {
     // Connect to WebSocket on component mount
     const ws = new WebSocket("ws://127.0.0.1:8000/ws");
@@ -114,24 +104,12 @@ function useMockChat(initMessages: Message[]): ChatHandler {
             "🔵 setMessages called from: WebSocket connection message"
           );
           console.log(messages);
-          // setMessages((prev) => [
-          //   ...prev,
-          //   {
-          //     role: "assistant",
-          //     content: data.message,
-          //   },
-          // ]);
         }
 
         // Handle message received acknowledgment
         if (data.type === "message_received") {
           console.log("isLoading: True");
           setIsLoading(true);
-          // Temporarily remove the acknowledgment message from UI for cleaner chat
-          // setMessages(prev => [...prev, {
-          //   role: 'assistant',
-          //   content: data.content
-          // }])
         }
 
         // Handle stream chunks (word-by-word streaming)
@@ -145,17 +123,16 @@ function useMockChat(initMessages: Message[]): ChatHandler {
 
             // If the last message is from assistant, append to it
             if (lastMessage && lastMessage.role === "assistant") {
-              // Correct, immutable update:
-              // 1. Create a new message object with the updated content
+              // NEW IMMUTABLE OBJECT
               const updatedLastMessage = {
                 ...lastMessage,
                 content: lastMessage.content + data.content,
               };
 
-              // 2. Return a new array containing all messages except the last, plus our new updated one.
+              // Return a new array containing all messages except the last, plus our new updated one.
               return [...prev.slice(0, -1), updatedLastMessage];
             } else {
-              // Create new assistant message
+              // If first message, create new assistant message
               return [
                 ...prev,
                 {
@@ -171,6 +148,8 @@ function useMockChat(initMessages: Message[]): ChatHandler {
         if (data.type === "stream_complete") {
           // Stream is complete, no additional action needed
           console.log("Stream completed");
+
+          saveChatToDB(messages);
         }
 
         // Handle errors
@@ -235,17 +214,6 @@ function useMockChat(initMessages: Message[]): ChatHandler {
     }
 
     return message.content;
-  };
-
-  const interrupt = async () => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      console.log("Sending interrupt signal to WebSocket");
-      wsRef.current.send(
-        JSON.stringify({
-          type: "interrupt",
-        })
-      );
-    }
   };
 
   return {
