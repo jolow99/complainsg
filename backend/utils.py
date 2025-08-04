@@ -64,6 +64,7 @@ async def stream_llm_async(
         temperature=0.7,
         extra_body={"max_tokens": 1024},
     )
+    print('Beginning stream...')
     
     async for chunk in stream:
         if chunk.choices[0].delta.content is not None:

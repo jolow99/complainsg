@@ -8,6 +8,7 @@ backend/build/
 backend/dist/
 backend/wheels/
 backend/*.egg-info
+backend/complainsg-venv
 
 # Virtual environments
 backend/.venv
