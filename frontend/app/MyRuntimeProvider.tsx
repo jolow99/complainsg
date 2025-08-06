@@ -21,7 +21,7 @@ async function* parseSSEStream(response: Response) {
     while (true) {
       const { done, value } = await reader.read();
       console.log("📖 Read chunk:", { done, valueLength: value?.length });
-      
+
       if (done) {
         console.log("✅ Stream reading completed");
         break;
@@ -29,18 +29,18 @@ async function* parseSSEStream(response: Response) {
 
       const chunk = decoder.decode(value, { stream: true });
       console.log("🔤 Decoded chunk:", chunk);
-      
-      const lines = chunk.split('\n');
+
+      const lines = chunk.split("\n");
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
+        if (line.startsWith("data: ")) {
           const jsonPart = line.slice(6);
           console.log("🧩 Processing JSON:", jsonPart);
-          
+
           try {
             const data = JSON.parse(jsonPart);
             console.log("📊 Parsed data:", data);
-            
+
             if (data.content) {
               yield data.content;
             } else if (data.done) {
@@ -64,25 +64,26 @@ async function* parseSSEStream(response: Response) {
 const MyModelAdapter: ChatModelAdapter = {
   async *run({ messages, abortSignal }) {
     console.log("🚀 MyModelAdapter.run called with messages:", messages);
-    
-    const requestBody = {
-      messages: messages.map(msg => ({
-        role: msg.role,
-        content: msg.content.map(c => c.type === "text" ? c.text : "").join("")
-      }))
-    };
-    console.log("📤 Sending request:", requestBody);
 
-    const response = await fetch("http://localhost:8000/api/chat/stream", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-      signal: abortSignal,
-    });
+    // Hard-coded task ID as requested
+    const task_id = "123";
+    console.log("🆔 Using hard-coded Task ID:", task_id);
 
-    console.log("📥 Response received:", response.status);
+    // Single GET request to stream the results
+    const response = await fetch(
+      `http://localhost:8000/api/chat/stream/${task_id}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal: abortSignal,
+      }
+    );
+
+    console.log("🔄 Response:", response);
+
+    console.log("📥 Stream response:", response.status);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -90,7 +91,7 @@ const MyModelAdapter: ChatModelAdapter = {
 
     const stream = parseSSEStream(response);
     let text = "";
-    
+
     for await (const part of stream) {
       text += part;
       console.log("🎯 Yielding text:", text);
@@ -107,7 +108,7 @@ export function MyRuntimeProvider({
   children: ReactNode;
 }>) {
   console.log("🏗️ MyRuntimeProvider rendering");
-  
+
   const runtime = useLocalRuntime(MyModelAdapter);
   console.log("🔌 Runtime created:", runtime);
 

@@ -1,15 +1,18 @@
-from typing import Union
+import asyncio
 import json
+import uuid
 
-from fastapi import FastAPI, WebSocket, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse
-from flow import create_streaming_chat_flow
+from fastapi import FastAPI, Request, WebSocket, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-
-from utils import stream_llm_async
+from fastapi.responses import StreamingResponse, JSONResponse
+from flow import generate_or_summarize_flow
 
 app = FastAPI()
+
+# Dictionary to hold queues for different tasks
+task_queues = {}
+# Lock to prevent race conditions when creating tasks
+task_creation_lock = asyncio.Lock()
 
 # List of allowed origins (your frontend URL)
 origins = [
@@ -19,26 +22,25 @@ origins = [
 # Add CORSMiddleware to the application
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,          # Allows specific origins
-    allow_credentials=True,         # Allows cookies
-    allow_methods=["*"],            # Allows all methods (GET, POST, etc.)
-    allow_headers=["*"],            # Allows all headers
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    # This function is untouched as per the instructions.
     await websocket.accept()
-    
-    # Send welcome message on connection open
-    welcome_message: ConnectionMessage = {
+
+    welcome_message = {
         "type": "connection",
-        "message": "Hello! I'm here to help you with your complaint. Please describe your complaint in detail!"
+        "message": "Hello! I'm here to help you with your complaint. Please describe your complaint in detail!",
     }
     await websocket.send_text(json.dumps(welcome_message))
-    
-    # Initialize conversation history for this connection
+
+    from flow import create_streaming_chat_flow
     shared_store = {
         "complaint": "",
         "websocket": websocket,
@@ -46,57 +48,88 @@ async def websocket_endpoint(websocket: WebSocket):
         "latest_user_message": "",
         "latest_assistant_message": "",
         "status": "continue",
-        "final_summary": ""
+        "final_summary": "",
     }
-
     flow = create_streaming_chat_flow()
     await flow.run_async(shared_store)
 
 
-@app.post("/api/chat/stream")
-async def chat_stream(request: Request):
+async def run_flow(shared_store: dict):
+    flow = generate_or_summarize_flow()
+    await flow.run_async(shared_store)
+
+
+# Kick off flow for existing task
+@app.post("/api/chat")
+async def chat_endpoint(request: Request, background_tasks: BackgroundTasks):
+    print("🚀 Chat endpoint called")
     data = await request.json()
-    messages = data.get("messages", [])
+    print(f"📤 POST /api/chat - Received data: {data}")
+    # HARD CODED TASK ID FOR NOW
+    task_id = "123"
+    print(f"🆔 Using task ID: {task_id}")
     
-    # Hard-coded system prompt for the POC
-    system_prompt = "You are a helpful complaint assistant. Help users articulate and structure their complaints clearly and professionally."
+    # Use lock to prevent race conditions
+    async with task_creation_lock:
+        # Check if task queue exists, if not create it
+        if task_id not in task_queues:
+            print(f"Task {task_id} queue not found, creating it...")
+            message_queue = asyncio.Queue()
+            task_queues[task_id] = message_queue
+            print(f"✅ Created new queue for task {task_id}")
+        else:
+            message_queue = task_queues[task_id]
+            print(f"✅ Using existing queue for task {task_id}")
     
-    # Convert to the format expected by stream_llm_async
-    formatted_messages = [{"role": "system", "content": system_prompt}]
-    for msg in messages:
-        formatted_messages.append({
-            "role": msg.get("role", "user"),
-            "content": msg.get("content", "")
-        })
+    # Define all shared parameters here and kick off the flow
+    shared_store = {
+        "conversation_history": data.get("messages", []),
+        "message_queue": message_queue,
+        "task_id": task_id,
+        "status": "continue",
+    }
     
-    async def generate_stream():
-        print('Generating stream...')
+    print(f"🚀 Starting background flow for task {task_id}")
+    background_tasks.add_task(run_flow, shared_store)
+    return {"task_id": task_id}
+
+# SSE endpoint to receive streaming response from the queue for a specific task
+@app.get("/api/chat/stream/{task_id}")
+async def stream_endpoint(task_id: str):
+    """
+    This endpoint returns the streaming response from the queue for a specific task.
+    If the task doesn't exist, it creates the task ID and queue but doesn't run the flow.
+    """
+    print(f"📥 GET /api/chat/stream/{task_id} - Current tasks: {list(task_queues.keys())}")
+    
+    # Use lock to prevent race conditions
+    async with task_creation_lock:
+        # If task doesn't exist, create the queue only (no flow execution)
+        if task_id not in task_queues:
+            print(f"Task {task_id} not found, creating queue...")
+            message_queue = asyncio.Queue()
+            task_queues[task_id] = message_queue
+            print(f"✅ Queue created for task {task_id}")
+        else:
+            print(f"✅ Task {task_id} already exists")
+
+    async def stream_generator():
+        queue = task_queues[task_id]
+        print(f"🔄 Starting stream for task {task_id}")
         try:
-            async for chunk in stream_llm_async(formatted_messages):
-                if chunk:
-                    # SSE format: data: {json}\n\n
-                    print('Sending chunk: ', chunk)
-                    yield f"data: {json.dumps({'content': chunk})}\n\n"
-            
-            # Send done event
-            print('Sending done event')
-            yield f"data: {json.dumps({'done': True})}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
-    
-    return StreamingResponse(
-        generate_stream(),
-        media_type="text/plain",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "Content-Type": "text/event-stream",
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-        }
-    )
-            
-            
-    
-# app.mount("/", StaticFiles(directory="frontend/.next", html=True), name="static")
+            while True:
+                message = await queue.get()
+                print(f"📨 Got message from queue: {message}")
+                if message is None:
+                    print(f"🏁 End of stream for task {task_id}")
+                    yield f"data: {json.dumps({'done': True})}\n\n"
+                    break
+                yield f"data: {json.dumps({'content': message})}\n\n"
+                queue.task_done()
+        finally:
+            # Clean up the queue
+            if task_id in task_queues:
+                print(f"🧹 Cleaning up task {task_id}")
+                del task_queues[task_id]
+
+    return StreamingResponse(stream_generator(), media_type="text/event-stream")

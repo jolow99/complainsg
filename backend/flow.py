@@ -7,7 +7,12 @@ from nodes import (
     DecisionNodeAsync,
     SummarizerNodeAsync,
 )
-    
+
+from nodes import (
+    HTTPGenerateNodeAsync,
+    HTTPDecisionNodeAsync,
+    HTTPSummarizerNodeAsync,
+)
     
 
 def create_streaming_chat_flow():
@@ -26,3 +31,13 @@ def create_streaming_chat_flow():
     # should be entry (recieve) to generate (send) to await (receive) to decision (think) to generate(send)/summarise(send)
     
     return AsyncFlow(start=entry)
+
+def generate_or_summarize_flow():
+    generate = HTTPGenerateNodeAsync()
+    decision = HTTPDecisionNodeAsync()
+    summarizer = HTTPSummarizerNodeAsync()
+    
+    decision - 'continue' >> generate
+    decision - 'complete' >> summarizer
+    
+    return AsyncFlow(start=decision)

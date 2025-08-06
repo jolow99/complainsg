@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
+import { useThread } from "@assistant-ui/react";
 
 export const Thread: FC = () => {
   return (
@@ -74,9 +75,7 @@ const ThreadWelcome: FC = () => {
     <ThreadPrimitive.Empty>
       <div className="flex w-full max-w-[var(--thread-max-width)] flex-grow flex-col">
         <div className="flex w-full flex-grow flex-col items-center justify-center">
-          <p className="mt-4 font-medium">
-            How can I help you today?
-          </p>
+          <p className="mt-4 font-medium">How can I help you today?</p>
         </div>
         <ThreadWelcomeSuggestions />
       </div>
@@ -126,10 +125,49 @@ const Composer: FC = () => {
 };
 
 const ComposerAction: FC = () => {
+  const thread = useThread();
+
+  const activateFlow = async () => {
+    console.log("🚀 Activating flow...");
+
+    const messages = thread.messages;
+
+    // Convert assistant-ui message format to our backend format
+    const requestBody = {
+      messages: messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content
+          .map((c) => (c.type === "text" ? c.text : ""))
+          .join(""),
+      })),
+    };
+
+    console.log("📤 Sending message history:", requestBody);
+
+    try {
+      const response = await fetch("http://localhost:8000/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const { task_id } = await response.json();
+      console.log("✅ Flow started with task ID:", task_id);
+    } catch (error) {
+      console.error("❌ Failed to start flow:", error);
+    }
+  };
+
   return (
     <>
       <ThreadPrimitive.If running={false}>
-        <ComposerPrimitive.Send asChild>
+        <ComposerPrimitive.Send asChild onClick={activateFlow}>
           <TooltipIconButton
             tooltip="Send"
             variant="default"
@@ -260,7 +298,10 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({
   return (
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch
-      className={cn("text-muted-foreground inline-flex items-center text-xs", className)}
+      className={cn(
+        "text-muted-foreground inline-flex items-center text-xs",
+        className
+      )}
       {...rest}
     >
       <BranchPickerPrimitive.Previous asChild>
