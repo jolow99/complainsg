@@ -4,6 +4,7 @@ import {
   ComposerPrimitive,
   ErrorPrimitive,
   MessagePrimitive,
+
   ThreadPrimitive,
 } from "@assistant-ui/react";
 import type { FC } from "react";
@@ -22,7 +23,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
-import { useThread } from "@assistant-ui/react";
 
 export const Thread: FC = () => {
   return (
@@ -31,6 +31,7 @@ export const Thread: FC = () => {
       style={{
         ["--thread-max-width" as string]: "42rem",
       }}
+
     >
       <ThreadPrimitive.Viewport className="flex h-full flex-col items-center overflow-y-scroll scroll-smooth bg-inherit px-4 pt-8">
         <ThreadWelcome />
@@ -84,6 +85,8 @@ const ThreadWelcome: FC = () => {
 };
 
 const ThreadWelcomeSuggestions: FC = () => {
+
+
   return (
     <div className="mt-3 flex w-full items-stretch justify-center gap-4">
       <ThreadPrimitive.Suggestion
@@ -91,6 +94,7 @@ const ThreadWelcomeSuggestions: FC = () => {
         prompt="What is the weather in Tokyo?"
         method="replace"
         autoSend
+
       >
         <span className="line-clamp-2 text-ellipsis text-sm font-semibold">
           What is the weather in Tokyo?
@@ -101,6 +105,7 @@ const ThreadWelcomeSuggestions: FC = () => {
         prompt="What is assistant-ui?"
         method="replace"
         autoSend
+
       >
         <span className="line-clamp-2 text-ellipsis text-sm font-semibold">
           What is assistant-ui?
@@ -111,13 +116,21 @@ const ThreadWelcomeSuggestions: FC = () => {
 };
 
 const Composer: FC = () => {
+
   return (
-    <ComposerPrimitive.Root className="focus-within:border-ring/20 flex w-full flex-wrap items-end rounded-lg border bg-inherit px-2.5 shadow-sm transition-colors ease-in">
+    <ComposerPrimitive.Root 
+      className="focus-within:border-ring/20 flex w-full flex-wrap items-end rounded-lg border bg-inherit px-2.5 shadow-sm transition-colors ease-in"
+      onSubmit={(e) => {
+        console.log("X🚀 ComposerPrimitive.Root onSubmit", e);
+      }}
+
+    >
       <ComposerPrimitive.Input
         rows={1}
         autoFocus
         placeholder="Write a message..."
         className="placeholder:text-muted-foreground max-h-40 flex-grow resize-none border-none bg-transparent px-2 py-4 text-sm outline-none focus:ring-0 disabled:cursor-not-allowed"
+
       />
       <ComposerAction />
     </ComposerPrimitive.Root>
@@ -125,49 +138,13 @@ const Composer: FC = () => {
 };
 
 const ComposerAction: FC = () => {
-  const thread = useThread();
-
-  const activateFlow = async () => {
-    console.log("🚀 Activating flow...");
-
-    const messages = thread.messages;
-
-    // Convert assistant-ui message format to our backend format
-    const requestBody = {
-      messages: messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content
-          .map((c) => (c.type === "text" ? c.text : ""))
-          .join(""),
-      })),
-    };
-
-    console.log("📤 Sending message history:", requestBody);
-
-    try {
-      const response = await fetch("http://localhost:8000/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const { task_id } = await response.json();
-      console.log("✅ Flow started with task ID:", task_id);
-    } catch (error) {
-      console.error("❌ Failed to start flow:", error);
-    }
-  };
 
   return (
     <>
       <ThreadPrimitive.If running={false}>
-        <ComposerPrimitive.Send asChild onClick={activateFlow}>
+        <ComposerPrimitive.Send asChild 
+
+        >
           <TooltipIconButton
             tooltip="Send"
             variant="default"
@@ -224,14 +201,22 @@ const UserActionBar: FC = () => {
 
 const EditComposer: FC = () => {
   return (
-    <ComposerPrimitive.Root className="bg-muted my-4 flex w-full max-w-[var(--thread-max-width)] flex-col gap-2 rounded-xl">
-      <ComposerPrimitive.Input className="text-foreground flex h-8 w-full resize-none bg-transparent p-4 pb-0 outline-none" />
+    <ComposerPrimitive.Root 
+      className="bg-muted my-4 flex w-full max-w-[var(--thread-max-width)] flex-col gap-2 rounded-xl"
+
+    >
+      <ComposerPrimitive.Input 
+        className="text-foreground flex h-8 w-full resize-none bg-transparent p-4 pb-0 outline-none" 
+
+      />
 
       <div className="mx-3 mb-3 flex items-center justify-center gap-2 self-end">
         <ComposerPrimitive.Cancel asChild>
           <Button variant="ghost">Cancel</Button>
         </ComposerPrimitive.Cancel>
-        <ComposerPrimitive.Send asChild>
+        <ComposerPrimitive.Send asChild 
+
+        >
           <Button>Send</Button>
         </ComposerPrimitive.Send>
       </div>

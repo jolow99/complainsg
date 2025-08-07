@@ -65,9 +65,36 @@ const MyModelAdapter: ChatModelAdapter = {
   async *run({ messages, abortSignal }) {
     console.log("🚀 MyModelAdapter.run called with messages:", messages);
 
-    // Hard-coded task ID as requested
-    const task_id = "123";
-    console.log("🆔 Using hard-coded Task ID:", task_id);
+    // Convert assistant-ui message format to backend format
+    const requestBody = {
+      messages: messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content
+          .map((c) => (c.type === "text" ? c.text : ""))
+          .join(""),
+      })),
+    };
+
+    console.log("📤 Sending message history:", requestBody);
+
+    // POST request to start the flow
+    const flowResponse = await fetch("http://localhost:8000/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+      signal: abortSignal,
+    });
+
+    if (!flowResponse.ok) {
+      throw new Error(`Flow start failed! status: ${flowResponse.status}`);
+    }
+
+    const { task_id } = await flowResponse.json();
+    console.log("✅ Flow started with task ID:", task_id);
+
+
 
     // Single GET request to stream the results
     const response = await fetch(
