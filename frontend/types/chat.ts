@@ -4,14 +4,15 @@ export interface ChatData {
   title: string;
   createdAt: Date;
   updatedAt: Date;
-  messageCount: number;
   category: string;
   tags: string[];
 }
 
 export interface MessageData {
-  role: "user" | "assistant" | "system" | "data";
+  role: MessageRole;
   content: string;
   timestamp: Date;
   messageIndex: number;
 } 
+
+export type MessageRole = "user" | "assistant" | "system" | "data";

@@ -6,6 +6,7 @@ import {
   useLocalRuntime,
   type ChatModelAdapter,
 } from "@assistant-ui/react";
+import { saveMessageToDB } from "@/lib/database";
 
 // Helper function to parse SSE stream
 async function* parseSSEStream(response: Response) {
@@ -15,55 +16,46 @@ async function* parseSSEStream(response: Response) {
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  console.log("🔄 Starting to read stream...");
 
   try {
     while (true) {
       const { done, value } = await reader.read();
-      console.log("📖 Read chunk:", { done, valueLength: value?.length });
 
       if (done) {
-        console.log("✅ Stream reading completed");
         break;
       }
 
       const chunk = decoder.decode(value, { stream: true });
-      console.log("🔤 Decoded chunk:", chunk);
 
       const lines = chunk.split("\n");
 
       for (const line of lines) {
         if (line.startsWith("data: ")) {
           const jsonPart = line.slice(6);
-          console.log("🧩 Processing JSON:", jsonPart);
 
           try {
             const data = JSON.parse(jsonPart);
-            console.log("📊 Parsed data:", data);
 
             if (data.content) {
               yield data.content;
             } else if (data.done) {
-              console.log("🏁 Stream completed");
               return;
             } else if (data.error) {
               throw new Error(data.error);
             }
           } catch (e) {
-            console.warn("⚠️ Failed to parse SSE data:", line, e);
+            // Ignore parse errors
           }
         }
       }
     }
   } finally {
-    console.log("🔚 Releasing reader lock");
     reader.releaseLock();
   }
 }
 
 const MyModelAdapter: ChatModelAdapter = {
   async *run({ messages, abortSignal }) {
-    console.log("🚀 MyModelAdapter.run called with messages:", messages);
 
     // Convert assistant-ui message format to backend format
     const requestBody = {
@@ -74,8 +66,6 @@ const MyModelAdapter: ChatModelAdapter = {
           .join(""),
       })),
     };
-
-    console.log("📤 Sending message history:", requestBody);
 
     // POST request to start the flow
     const flowResponse = await fetch("http://localhost:8000/api/chat", {
@@ -91,12 +81,18 @@ const MyModelAdapter: ChatModelAdapter = {
       throw new Error(`Flow start failed! status: ${flowResponse.status}`);
     }
 
+    // Make sure the tasks has started
     const { task_id } = await flowResponse.json();
-    console.log("✅ Flow started with task ID:", task_id);
 
+    // Latest user message
+    const latestUserMessage = requestBody.messages[requestBody.messages.length - 1];
 
+    if (latestUserMessage && latestUserMessage.role === "user") {
+      // Firing this async with no await not sure if this is best practice but its quicker
+      saveMessageToDB(latestUserMessage.content, "user", [], "ryan", "123");
+    }
 
-    // Single GET request to stream the results
+    // Get the stream response with GET
     const response = await fetch(
       `http://localhost:8000/api/chat/stream/${task_id}`,
       {
@@ -108,10 +104,6 @@ const MyModelAdapter: ChatModelAdapter = {
       }
     );
 
-    console.log("🔄 Response:", response);
-
-    console.log("📥 Stream response:", response.status);
-
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -121,11 +113,16 @@ const MyModelAdapter: ChatModelAdapter = {
 
     for await (const part of stream) {
       text += part;
-      console.log("🎯 Yielding text:", text);
       yield {
         content: [{ type: "text", text }],
       };
     }
+
+    // Save the assistant's response to DB
+    if (text) {
+      saveMessageToDB(text, "assistant", [], "ryan", "123");
+    }
+
   },
 };
 
@@ -134,10 +131,7 @@ export function MyRuntimeProvider({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  console.log("🏗️ MyRuntimeProvider rendering");
-
   const runtime = useLocalRuntime(MyModelAdapter);
-  console.log("🔌 Runtime created:", runtime);
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>

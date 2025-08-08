@@ -10,9 +10,14 @@ import {
   where,
 } from "firebase/firestore";
 import { ChatData } from "@/types/chat";
-import { Message } from "@llamaindex/chat-ui";
+import { MessageRole } from "@/types/chat";
+import { JSONValue } from "ai";
 
-export const saveChatToDB = async (messages: Message[], userID: string = "ryan", chatID: string = "123") => {
+
+// Still unsure if this is best practice (saving message by message) 
+// Alternatively is to retrieve entire message state in the runtime provider then save the entire state to the DB everytime we post
+// But that also seems like wasted bandwidth esp the chat is long
+export const saveMessageToDB = async (content: string, role: MessageRole, annotations?: JSONValue[], userID: string = "ryan", chatID: string = "123") => {
 
   try {
     // Query chats collection for document with both chatID and userID
@@ -32,11 +37,7 @@ export const saveChatToDB = async (messages: Message[], userID: string = "ryan",
       // Update existing chat document
       const updateData = {
         updatedAt: new Date(),
-        messageCount: messages.length,
-        title:
-          messages.length > 0
-            ? messages[0].content.slice(0, 50) + "..."
-            : "Updated Chat",
+        title: content.slice(0, 50) + "...",
       };
       chatRef = userChatSnapshot.docs[0].ref;
       await updateDoc(chatRef, updateData);
@@ -46,12 +47,9 @@ export const saveChatToDB = async (messages: Message[], userID: string = "ryan",
         userID: userID,
         chatID: chatID,
         title:
-          messages.length > 0
-            ? messages[0].content.slice(0, 50) + "..."
-            : "New Chat",
+          content.slice(0, 50) + "...",
         createdAt: new Date(),
         updatedAt: new Date(),
-        messageCount: messages.length,
         category: "feedback",
         tags: [],
       };
@@ -70,15 +68,18 @@ export const saveChatToDB = async (messages: Message[], userID: string = "ryan",
     );
     const messagesSnapshot = await getDocs(messagesCollection);
 
-    if (messagesSnapshot.empty) {
-      await addDoc(messagesCollection, {
-        role: "asdf",
-        content: "asdf",
-        timestamp: new Date(),
-        messageIndex: 0,
-      });
-    }
+    // Add the actual message to the subcollection
+    const messageObj = {
+      role: role,
+      content: content,
+      timestamp: new Date(),
+      messageIndex: messagesSnapshot.size, // Use current size as index
+      annotations: annotations || []
+    };
+
+    await addDoc(messagesCollection, messageObj);
+    console.log(`✅ Saved ${role} message to subcollection`, { messageIndex: messagesSnapshot.size });
   } catch (error) {
-    console.error("Error saving chat to DB: ", error);
+    console.error(`❌ Error saving ${role} message to DB:`, error);
   }
 }; 
