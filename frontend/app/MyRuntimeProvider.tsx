@@ -6,7 +6,7 @@ import {
   useLocalRuntime,
   type ChatModelAdapter,
 } from "@assistant-ui/react";
-import { saveMessageToDB } from "@/lib/database";
+import { saveMessageToDB, saveChatMetadataToDB } from "@/lib/database";
 
 // Helper function to parse SSE stream
 async function* parseSSEStream(response: Response) {
@@ -37,7 +37,9 @@ async function* parseSSEStream(response: Response) {
             const data = JSON.parse(jsonPart);
 
             if (data.content) {
-              yield data.content;
+              yield { type: "content", data: data.content };
+            } else if (data.type === "metadata") {
+              yield { type: "metadata", data: data };
             } else if (data.done) {
               return;
             } else if (data.error) {
@@ -57,6 +59,9 @@ async function* parseSSEStream(response: Response) {
 const MyModelAdapter: ChatModelAdapter = {
   async *run({ messages, abortSignal }) {
 
+    const chatID = "This is a test chat ID"; // Extract for reuse
+    const userID = "Ronald Weasley";
+
     // Convert assistant-ui message format to backend format
     const requestBody = {
       messages: messages.map((msg) => ({
@@ -67,7 +72,7 @@ const MyModelAdapter: ChatModelAdapter = {
       })),
     };
 
-    // POST request to start the flow
+    // POST request contains : entire message history + metadata + topic
     const flowResponse = await fetch("http://localhost:8000/api/chat", {
       method: "POST",
       headers: {
@@ -89,7 +94,7 @@ const MyModelAdapter: ChatModelAdapter = {
 
     if (latestUserMessage && latestUserMessage.role === "user") {
       // Firing this async with no await not sure if this is best practice but its quicker
-      saveMessageToDB(latestUserMessage.content, "user", [], "ryan", "123");
+      saveMessageToDB(latestUserMessage.content, "user", [], userID, chatID);
     }
 
     // Get the stream response with GET
@@ -111,16 +116,23 @@ const MyModelAdapter: ChatModelAdapter = {
     const stream = parseSSEStream(response);
     let text = "";
 
-    for await (const part of stream) {
-      text += part;
-      yield {
-        content: [{ type: "text", text }],
-      };
+    for await (const item of stream) {
+      if (item.type === "content") {
+        text += item.data;
+        yield {
+          content: [{ type: "text", text }],
+        };
+      } else if (item.type === "metadata") {
+        // Handle metadata here outside of parseSSEStream
+        console.log("🔍 Saving metadata to DB");
+        console.log("🔍 Metadata:", item.data);
+        saveChatMetadataToDB(item.data.complaintTopic, item.data.complaintMetadata, chatID);
+      }
     }
 
     // Save the assistant's response to DB
     if (text) {
-      saveMessageToDB(text, "assistant", [], "ryan", "123");
+      saveMessageToDB(text, "assistant", [], userID, chatID);
     }
 
   },

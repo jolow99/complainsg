@@ -13,6 +13,11 @@ import { ChatData } from "@/types/chat";
 import { MessageRole } from "@/types/chat";
 import { JSONValue } from "ai";
 
+interface ChatMetadata {
+  constituency: string;
+  genre: string;
+}
+
 
 // Still unsure if this is best practice (saving message by message) 
 // Alternatively is to retrieve entire message state in the runtime provider then save the entire state to the DB everytime we post
@@ -27,7 +32,7 @@ export const saveMessageToDB = async (content: string, role: MessageRole, annota
       where("userID", "==", userID),
       where("chatID", "==", chatID)
     );
-    const userChatSnapshot = await getDocs(userChatQuery);
+    const userChatSnapshot = await getDocs(userChatQuery) ?? [];
 
     let chatRef = null;
 
@@ -83,3 +88,15 @@ export const saveMessageToDB = async (content: string, role: MessageRole, annota
     console.error(`❌ Error saving ${role} message to DB:`, error);
   }
 }; 
+
+export const saveChatMetadataToDB = async (complaintTopic: string, complaintMetadata: ChatMetadata, chatID: string = "123") => {
+  try {
+    const chatRef = doc(db, "chats", chatID);
+    await updateDoc(chatRef, {
+      complaintTopic: complaintTopic,
+      complaintMetadata: complaintMetadata,
+    });
+  } catch (error) {
+    console.error("Error saving chat metadata to DB: ", error);
+  }
+};

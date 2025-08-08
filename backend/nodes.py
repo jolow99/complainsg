@@ -131,9 +131,24 @@ Write a short, clear summary of the complaint as a single paragraph.
 class HTTPDecisionNodeAsync(AsyncNode):
     async def prep_async(self, shared):
         return {
-            "conversation_history": shared["conversation_history"]
+            "conversation_history": shared["conversation_history"],
+            "complaint_topic": shared.get("complaint_topic", ""),
+            "complaint_metadata": shared.get("complaint_metadata", {})
         }
     async def exec_async(self, inputs):
+        # Check if metadata is already filled
+        complaint_topic = inputs.get("complaint_topic", "")
+        complaint_metadata = inputs.get("complaint_metadata", {})
+        
+        # If metadata is missing, we need to derive it
+        if not complaint_topic or not complaint_metadata:
+            print("🔍 Metadata missing, need to derive from chat history")
+            # TODO: Call LLM to derive metadata from conversation_history
+            # This would analyze the conversation and extract:
+            # - complaint_topic: e.g., "Housing Issues", "Transport", "Healthcare"
+            # - complaint_metadata: {"constituency": "...", "genre": "complaint/feedback/suggestion"}
+            # For now, we'll continue with the regular decision logic
+        
         prompt = f"""
 Conversation history: {inputs['conversation_history']}
 
@@ -142,6 +157,13 @@ Respond with one word: "complete" or "continue".
 """
         return await call_llm_async(prompt)
     async def post_async(self, shared, prep_res, exec_res):
+        # Update shared store fields if needed
+        if not shared.get("complaint_topic") or not shared.get("complaint_metadata"):
+            print("🔄 Would derive and update metadata here")
+            # TODO: Update shared store with derived values
+            # shared["complaint_topic"] = derived_topic
+            # shared["complaint_metadata"] = derived_metadata
+        
         return exec_res.lower()  # either "complete" or "continue"
 
 
