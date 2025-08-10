@@ -13,8 +13,6 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-console.log("firebaseConfig: ", firebaseConfig);
-
 // init firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const analytics = isSupported().then(yes => yes ? getAnalytics(app) : null);

@@ -6,6 +6,8 @@ import {
   MessagePrimitive,
 
   ThreadPrimitive,
+  useThread,
+  useThreadRuntime,
 } from "@assistant-ui/react";
 import type { FC } from "react";
 import {
@@ -25,6 +27,17 @@ import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 
 export const Thread: FC = () => {
+  const thread = useThread();
+  const threadRuntime = useThreadRuntime();
+
+  console.log("🔍 THREAD: threadRuntime =", threadRuntime);
+  console.log("🔍 THREAD: thread =", thread);
+  
+  // Save thread messages to localStorage
+  if (thread.messages && thread.messages.length > 0) {
+    localStorage.setItem('thread_messages', JSON.stringify(thread.messages));
+  }
+  
   return (
     <ThreadPrimitive.Root
       className="text-foreground bg-background box-border flex h-full flex-col overflow-hidden"
@@ -120,11 +133,7 @@ const Composer: FC = () => {
   return (
     <ComposerPrimitive.Root 
       className="focus-within:border-ring/20 flex w-full flex-wrap items-end rounded-lg border bg-inherit px-2.5 shadow-sm transition-colors ease-in"
-      onSubmit={(e) => {
-        console.log("X🚀 ComposerPrimitive.Root onSubmit", e);
-      }}
-
-    >
+   >
       <ComposerPrimitive.Input
         rows={1}
         autoFocus

@@ -100,3 +100,18 @@ export const saveChatMetadataToDB = async (complaintTopic: string, complaintMeta
     console.error("Error saving chat metadata to DB: ", error);
   }
 };
+
+export const retrieveThreadsFromDB = async (userID: string) => {
+  const threadsCollection = collection(db, "chats");
+  const threadsQuery = query(threadsCollection, where("userID", "==", userID));
+  const threadsSnapshot = await getDocs(threadsQuery);
+  return threadsSnapshot.docs.map((doc) => doc.data());
+};
+
+export const retrieveMessagesFromDB = async (chatID: string) => {
+  const messagesCollection = collection(db, "chats", chatID, "messages");
+  const messagesQuery = query(messagesCollection);
+  const messagesSnapshot = await getDocs(messagesQuery);
+  return messagesSnapshot.docs.map((doc) => doc.data());
+};
+
