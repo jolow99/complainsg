@@ -1,16 +1,24 @@
 import {
   ChatModelAdapter,
   ThreadHistoryAdapter,
+  ThreadListItemRuntime,
   ThreadMessage,
+  useThreadRuntime,
 } from "@assistant-ui/react";
-import { unstable_RemoteThreadListAdapter as RemoteThreadListAdapter } from "@assistant-ui/react";
+import {
+  unstable_RemoteThreadListAdapter as RemoteThreadListAdapter,
+  useThreadListItemRuntime,
+} from "@assistant-ui/react";
 import {
   saveMessageToDB,
   saveChatMetadataToDB,
   retrieveThreadsFromDB,
   retrieveMessagesFromDB,
 } from "@/lib/database";
+import { ChatData } from "@/types/chat";
 import { parseSSEStream } from "./runtimeUtils";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export type ExportedMessageRepository = {
   /** ID of the head message, or null/undefined if no head */
@@ -131,10 +139,40 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
     };
   },
 
+  // when called from threadListItemRuntime, threadId will be the localId
+  // Right now initalize is not using the local threadId, it will always create a new thread in the DB with a new id
   async initialize(threadId: string) {
-    // TODO: Implement actual database call to create thread
-    console.log("🔍 DATABASE ADAPTER: initialize() called with", threadId);
-    return { remoteId: threadId, externalId: "externalId" };
+
+    const newThreadId = `thread_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log("🔍 DATABASE ADAPTER: newThreadId =", newThreadId);
+
+
+    // // Create new document in chats collection with the provided ID
+    const userID = "Mundungus Fletcher"; // TODO: Get from auth system
+
+    try {
+      const chatData: ChatData = {
+        userID: userID,
+        chatID: threadId,
+        title: "New Chat",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        category: "feedback",
+        tags: [],
+      };
+
+      // Create the chat document in Firestore
+      const chatRef = doc(db, "chats", threadId);
+      await setDoc(chatRef, chatData);
+
+      console.log("✅ Created new chat document with ID:", threadId);
+      return { remoteId: newThreadId, externalId: newThreadId };
+    } catch (error) {
+      console.error("❌ Error creating chat document:", error);
+      return { remoteId: newThreadId, externalId: newThreadId };
+    }
+
   },
 
   async rename(remoteId: string, newTitle: string) {
@@ -166,50 +204,65 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
 
 // Abstract ThreadHistoryAdapter into its own function
 export function createThreadHistoryAdapter(
-  id: string | undefined
+  id: string,
+  threadListItemRuntime: ThreadListItemRuntime
 ): ThreadHistoryAdapter {
   return {
     async load() {
-
       console.log("🔍 HISTORY ADAPTER: remoteId =", id);
       if (!id) return { messages: [] };
       console.log("🔍 HISTORY ADAPTER: load() called for thread", id);
       // const messages = await retrieveMessagesFromDB(remoteId);
 
-      // Check if messages exist in localStorage
-      const localStorageMessages = localStorage.getItem("thread_messages");
-      const messagesFromLocalStorage: ThreadMessage[] = JSON.parse(
-        localStorageMessages || "[]"
-      );
+      // // Check if messages exist in localStorage
+      // const localStorageMessages = localStorage.getItem("thread_messages");
+      // const messagesFromLocalStorage: ThreadMessage[] = JSON.parse(
+      //   localStorageMessages || "[]"
+      // );
 
-      console.log("🔍 HISTORY ADAPTER: messagesFromLocalStorage =", messagesFromLocalStorage);
+      // console.log(
+      //   "🔍 HISTORY ADAPTER: messagesFromLocalStorage =",
+      //   messagesFromLocalStorage
+      // );
 
-      const messagePayload: Array<{
-        message: ThreadMessage;
-        parentId: string | null;
-      }> = messagesFromLocalStorage.map(
-        (msg: ThreadMessage, index: number) => ({
-          message: msg,
-          parentId: index === 0 ? null : messagesFromLocalStorage[index - 1].id,
-        })
-      );
+      // const messagePayload: Array<{
+      //   message: ThreadMessage;
+      //   parentId: string | null;
+      // }> = messagesFromLocalStorage.map(
+      //   (msg: ThreadMessage, index: number) => ({
+      //     message: msg,
+      //     parentId: index === 0 ? null : messagesFromLocalStorage[index - 1].id,
+      //   })
+      // );
 
-      const messagesList: ExportedMessageRepository = {
-        headId: messagesFromLocalStorage[messagesFromLocalStorage.length - 1].id,
-        messages: messagePayload,
-      };
+      // const messagesList: ExportedMessageRepository = {
+      //   headId:
+      //     messagesFromLocalStorage[messagesFromLocalStorage.length - 1].id,
+      //   messages: messagePayload,
+      // };
 
-      console.log("🔍 HISTORY ADAPTER: messagesList =", messagesList);
-      return messagesList;
+      // console.log("🔍 HISTORY ADAPTER: messagesList =", messagesList);
+      return { messages: [] };
     },
 
     async append(message) {
+      console.log("🔍 HISTORY ADAPTER: append() called");
       // this doesnt seem right, i shouldnt have to call initalize myself, i feel like the devs for this package will fix this on stable release and there will no need for this
       let threadId = "";
-      if (!id) {
-        // Create a new thread if current thread is not initialized (on first message probably)
-        const { remoteId } = await myDatabaseAdapter.initialize("PLEASE WORK");
-        threadId = remoteId;
+
+      // Check if id has the prefix __LOCAL
+      if (id.startsWith("__LOCAL")) {
+        // Call threadListItemRuntime.initialize() to trigger the flow with hashed ID
+        // When you call this, it will cascade to initialize function in DB adapter
+        // Then it will cascade to the thread state runtime with the correct id
+        // But if you call init DB it will not change the thread state it will just create a new thread in the db
+        // This should have been documented better
+        // Doesnt seem right i had to pass it as a param and call the init process myself on first message
+        const threadListItemRuntimeOutput = await threadListItemRuntime.initialize();
+
+        console.log("🔍 HISTORY ADAPTER: threadListItemRuntime output =", threadListItemRuntimeOutput);
+      } else if (id.startsWith("thread_")) {
+        threadId = id;
       }
 
       console.log("🔍 HISTORY ADAPTER: threadId =", threadId);
@@ -220,12 +273,6 @@ export function createThreadHistoryAdapter(
         message
       );
 
-      // TODO: Implement actual database call to save message
-      console.log(
-        "🔍 HISTORY ADAPTER: append() called for thread",
-        id,
-        message
-      );
     },
   };
 }

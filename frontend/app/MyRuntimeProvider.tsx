@@ -13,6 +13,7 @@ import {
   useThread,
   useAssistantRuntime,
   useThreadRuntime,
+  useThreadListItemRuntime,
 } from "@assistant-ui/react";
 import {
   messageAdapter,
@@ -40,8 +41,10 @@ export function MyRuntimeProvider({
 
         // Seems like if the thread is not initalized
         const threadListItem = useThreadListItem();
-
+        const threadListItemRuntime = useThreadListItemRuntime();
         let id = "";
+
+        
 
         // If thead is not initalized, 
         if (!threadListItem.remoteId) {
@@ -52,8 +55,8 @@ export function MyRuntimeProvider({
 
         // Create thread-specific history adapter using abstracted function
         const threadHistoryAdapter = useMemo<ThreadHistoryAdapter>(
-          () => createThreadHistoryAdapter(id),
-          [id]
+          () => createThreadHistoryAdapter(id, threadListItemRuntime),
+          [id, threadListItemRuntime]
         );
 
         const adapters = useMemo(

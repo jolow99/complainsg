@@ -27,17 +27,7 @@ import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
 
 export const Thread: FC = () => {
-  const thread = useThread();
-  const threadRuntime = useThreadRuntime();
 
-  console.log("🔍 THREAD: threadRuntime =", threadRuntime);
-  console.log("🔍 THREAD: thread =", thread);
-  
-  // Save thread messages to localStorage
-  if (thread.messages && thread.messages.length > 0) {
-    localStorage.setItem('thread_messages', JSON.stringify(thread.messages));
-  }
-  
   return (
     <ThreadPrimitive.Root
       className="text-foreground bg-background box-border flex h-full flex-col overflow-hidden"
