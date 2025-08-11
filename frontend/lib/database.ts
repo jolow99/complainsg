@@ -10,11 +10,8 @@ import {
   where,
   getDoc,
 } from "firebase/firestore";
-import { ChatData, DatabaseMessageObject } from "@/types/chat";
-import { MessageRole } from "@/types/chat";
-import { JSONValue } from "ai";
+import { ChatData } from "@/types/chat";
 import { ExportedMessageRepositoryItem } from "@/types/types";
-import { MessageStatus, ThreadUserMessagePart } from "@assistant-ui/react";
 
 interface ChatMetadata {
   constituency: string;
@@ -30,19 +27,19 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
   // Possible race condition: 
   try {
     // Query chats collection for document with both chatID and userID
-    const chatsCollection = collection(db, "threads");
-    console.log("🔍 DATABASE ADAPTER: chatsCollection =", chatsCollection);
-    const userChatQuery = query(
-      chatsCollection,
+    const threadsCollection = collection(db, "threads");
+    console.log("🔍 DATABASE ADAPTER: threadsCollection =", threadsCollection);
+    const userThreadQuery = query(
+      threadsCollection,
       where("userID", "==", userID),
       where("threadID", "==", threadID)
     );
-    const userChatSnapshot = await getDocs(userChatQuery) ?? [];
+    const userThreadSnapshot = await getDocs(userThreadQuery) ?? [];
 
-    let chatRef = null;
+    let threadRef = null;
 
     // If chat document exists, reference the old one
-    if (!userChatSnapshot.empty && userChatSnapshot.docs[0].exists()) {
+    if (!userThreadSnapshot.empty && userThreadSnapshot.docs[0].exists()) {
       // There should be only one chat document with the same userID and chatID
       // Update existing chat document
       const updateData = {
@@ -54,11 +51,11 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
         headId: message.message.id,
         tags: [],
       };
-      chatRef = userChatSnapshot.docs[0].ref;
-      await updateDoc(chatRef, updateData);
+      threadRef = userThreadSnapshot.docs[0].ref;
+      await updateDoc(threadRef, updateData);
     } else {
       // Create new chat document with custom ID
-      const chatData: ChatData = {
+      const threadData: ChatData = {
         userID: userID,
         threadID: threadID,
         title: "test title",
@@ -70,18 +67,18 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
       };
 
       // Use setDoc with custom ID instead of addDoc
-      chatRef = doc(db, "threads", threadID);
-      await setDoc(chatRef, chatData);
+      threadRef = doc(db, "threads", threadID);
+      await setDoc(threadRef, threadData);
     }
 
     // Check if messages subcollection exists
-    const messagesCollection = collection(
+    const threadMessagesCollection = collection(
       db,
       "threads",
-      chatRef!.id,
+      threadRef!.id,
       "messages"
     );
-    const messagesSnapshot = await getDocs(messagesCollection);
+    const messagesSnapshot = await getDocs(threadMessagesCollection);
 
     // Firebase cannot suppose nested params 
     // Flatten ExportedMessageRepositoryItem to DatabaseMessageObject that can be saved to the DB
@@ -92,12 +89,12 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
       role: message.message.role,
       metadata: message.message.metadata,
       createdAt: message.message.createdAt,
-      // assistant ui library says status field is optional (in the typing) but its a fucking lie, messages cannot render in the UI without it
+      // assistant ui library says status field is optional (in the typing) but this is not true, messages cannot render in the UI without it
       // update: nevermind, im going to hardcode it to complete when retrieving from DB, i only save to DB when message is complete anw
       // status: message.message.status as MessageStatus,
     };
 
-    await addDoc(messagesCollection, messageObj);
+    await addDoc(threadMessagesCollection, messageObj);
     console.log(`✅ Saved ${message.message.role} message to subcollection`, { messageIndex: messagesSnapshot.size });
   } catch (error) {
     console.error(`❌ Error saving ${message.message.role} message to DB:`, error);

@@ -9,10 +9,6 @@ import {
   useThreadListItem,
   RuntimeAdapterProvider,
   type ThreadHistoryAdapter,
-  useThreadList,
-  useThread,
-  useAssistantRuntime,
-  useThreadRuntime,
   useThreadListItemRuntime,
 } from "@assistant-ui/react";
 import {
@@ -37,15 +33,13 @@ export function MyRuntimeProvider({
       unstable_Provider: ({ children }) => {
         // This runs in the context of each thread
         // When first entering the page, logic is ran with created with local ID ( example: __LOCALID_mFreCyM)
-        // When switching to a thread, logic is ran with remote ID ( example: to be chosen)
+        // When switching to a thread, logic is ran with remote ID ( example: thread_mFreCyM)
 
-        // Seems like if the thread is not initalized
         const threadListItem = useThreadListItem();
         const threadListItemRuntime = useThreadListItemRuntime();
         let id = "";
 
-        
-
+      
         // If thead is not initalized, 
         if (!threadListItem.remoteId) {
           id = threadListItem.id;
@@ -54,6 +48,8 @@ export function MyRuntimeProvider({
         }
 
         // Create thread-specific history adapter using abstracted function
+        // Im not sure if this is best practise, but it works
+        // In the docs, they did not pass the threadListItemRuntime as a param, but im not sure how else to start the init process for a new thread
         const threadHistoryAdapter = useMemo<ThreadHistoryAdapter>(
           () => createThreadHistoryAdapter(id, threadListItemRuntime),
           [id, threadListItemRuntime]

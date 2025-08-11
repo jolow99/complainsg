@@ -1,11 +1,7 @@
 import {
   ChatModelAdapter,
-  MessageStatus,
   ThreadHistoryAdapter,
   ThreadListItemRuntime,
-  ThreadMessage,
-  ThreadUserMessagePart,
-  useThreadRuntime,
 } from "@assistant-ui/react";
 import {
   unstable_RemoteThreadListAdapter as RemoteThreadListAdapter,
@@ -13,7 +9,6 @@ import {
 } from "@assistant-ui/react";
 import {
   saveMessageToDB,
-  saveChatMetadataToDB,
   retrieveThreadsFromDB,
   retrieveMessagesFromDB,
   retrieveThreadMetaData,
@@ -119,7 +114,7 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
 
     // // Create new document in chats collection with the provided ID
     try {
-      const chatData: ChatData = {
+      const threadData: ChatData = {
         userID: GLOBAL_CONFIG.USER_ID_PLACEHOLDER,
         threadID: remoteThreadId,
         title: "New Chat",
@@ -131,8 +126,8 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
       };
 
       // Create the chat document in Firestore
-      const chatRef = doc(db, "chats", remoteThreadId);
-      await setDoc(chatRef, chatData);
+      const threadRef = doc(db, "threads", remoteThreadId);
+      await setDoc(threadRef, threadData);
 
       return { remoteId: remoteThreadId, externalId: remoteThreadId };
     } catch (error) {
@@ -174,7 +169,6 @@ export function createThreadHistoryAdapter(
 ): ThreadHistoryAdapter {
   return {
     async load() {
-      console.log("🔍 HISTORY ADAPTER: load() called");
       // Fresh thread, dont load anything
       if (id.startsWith("__LOCAL") || !id) {
         return { messages: [] };
@@ -205,10 +199,10 @@ export function createThreadHistoryAdapter(
             parentId: dbMsg.parentId,
           }));
 
-        // The fact that I have to do this is a fucking joke
-        // They force me to include the parentId param in such a fucking weird data struct
+        // Assistant-ui has to change this
+        // They force me to include the parentId param in such a weird data struct
         // I assume its because they want to verify the order of the messages in the UI, which is fine
-        // But I cant pass it in unordered, because if one of the message reference a message (as a parent) that hasnt been loaded into memory yet, then the whole fucking thing breaks
+        // But I cant pass it in unordered, because if one of the message reference a message (as a parent) that hasnt been loaded into memory yet, then the whole thing breaks
         // So I have to manually sort it here, and then pass it to the message repository
         const sortedMessages = [...exportedMessages].sort((a, b) => {
           // Use Firestore Timestamp's toDate() method for proper conversion
@@ -216,16 +210,13 @@ export function createThreadHistoryAdapter(
           const dateB = (b.message.createdAt as any).toDate();
           return dateA.getTime() - dateB.getTime(); // Oldest first
         });
-        console.log("🔍 SORTED MESSAGES =", sortedMessages);
-        console.log("🔍 NOT SORTED MESSAGES =", exportedMessages);
 
-        // Package into ExportedMessageRepository
+        // Package into ExportedMessageRepository format
         const messageRepository: ExportedMessageRepository = {
           headId: threadMetaData.headId,
           messages: sortedMessages,
         };
 
-        console.log("🔍 Right before MESSAGE REPOSITORY =", messageRepository);
         return messageRepository;
       }
 
