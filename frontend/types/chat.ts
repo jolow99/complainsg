@@ -9,6 +9,8 @@ export interface ChatData {
   category: string;
   tags: string[];
   headId: string | null;
+  topic: string | null;
+  location: string | null;
 }
 
 export interface MessageData {

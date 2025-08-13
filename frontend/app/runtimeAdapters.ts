@@ -21,7 +21,7 @@ import {
   ExportedMessageRepository,
   ExportedMessageRepositoryItem,
 } from "@/types/types";
-import { GLOBAL_CONFIG } from "./constants";
+import { GLOBAL_PLACEHOLDERS } from "./constants";
 
 export const messageAdapter: ChatModelAdapter = {
   async *run({ messages, abortSignal }) {
@@ -91,7 +91,7 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
     console.log("🔍 DATABASE ADAPTER: list() called");
 
     const threads = await retrieveThreadsFromDB(
-      GLOBAL_CONFIG.USER_ID_PLACEHOLDER
+      GLOBAL_PLACEHOLDERS.USER_ID_PLACEHOLDER
     );
 
     const threadList = threads.map((thread) => ({
@@ -115,7 +115,7 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
     // // Create new document in chats collection with the provided ID
     try {
       const threadData: ChatData = {
-        userID: GLOBAL_CONFIG.USER_ID_PLACEHOLDER,
+        userID: GLOBAL_PLACEHOLDERS.USER_ID_PLACEHOLDER,
         threadID: remoteThreadId,
         title: "New Chat",
         createdAt: new Date(),
@@ -123,6 +123,8 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
         category: "feedback",
         tags: [],
         headId: null,
+        topic: null,
+        location: null,
       };
 
       // Create the chat document in Firestore
@@ -239,7 +241,7 @@ export function createThreadHistoryAdapter(
         threadId = id;
       }
 
-      saveMessageToDB(message, GLOBAL_CONFIG.USER_ID_PLACEHOLDER, threadId);
+      saveMessageToDB(message, GLOBAL_PLACEHOLDERS.USER_ID_PLACEHOLDER, threadId);
 
       console.log("🔍 HISTORY ADAPTER: message =", message);
       console.log(

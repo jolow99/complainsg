@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { ChatData } from "@/types/chat";
 import { ExportedMessageRepositoryItem } from "@/types/types";
+import { GLOBAL_PLACEHOLDERS } from "@/app/constants";
 
 interface ChatMetadata {
   constituency: string;
@@ -44,12 +45,14 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
       // Update existing chat document
       const updateData = {
         updatedAt: new Date(),
-        title: 'TEST METADATA',
-        userID: userID,
+        title: 'Noise from planes',
+        userID: userID, 
         threadID: threadID,
         category: "feedback",
         headId: message.message.id,
         tags: [],
+        topic: GLOBAL_PLACEHOLDERS.THREAD_TOPIC_PLACEHOLDER,
+        location: GLOBAL_PLACEHOLDERS.THREAD_LOCATION_PLACEHOLDER,
       };
       threadRef = userThreadSnapshot.docs[0].ref;
       await updateDoc(threadRef, updateData);
@@ -64,6 +67,8 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
         category: "feedback",
         headId: message.message.id,
         tags: [],
+        topic: null,
+        location: null,
       };
 
       // Use setDoc with custom ID instead of addDoc
@@ -131,5 +136,13 @@ export const retrieveThreadMetaData = async (threadID: string) => {
   const threadRef = doc(db, "threads", threadID);
   const threadSnapshot = await getDoc(threadRef);
   return threadSnapshot.data();
+};
+
+export const retrieveAllTopics = async () => {
+  const topicsCollection = collection(db, "topics");
+  const topicsQuery = query(topicsCollection);
+  const topicsSnapshot = await getDocs(topicsQuery);
+  console.log("🔍 DATABASE FUNCTION: topicsSnapshot =", topicsSnapshot);
+  return topicsSnapshot.docs.map((doc) => doc.data());
 };
 
