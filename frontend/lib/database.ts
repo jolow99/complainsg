@@ -10,7 +10,7 @@ import {
   where,
   getDoc,
 } from "firebase/firestore";
-import { ChatData } from "@/types/chat";
+import { ThreadData } from "@/types/chat";
 import { ExportedMessageRepositoryItem } from "@/types/types";
 import { GLOBAL_PLACEHOLDERS } from "@/app/constants";
 
@@ -53,12 +53,13 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
         tags: [],
         topic: GLOBAL_PLACEHOLDERS.THREAD_TOPIC_PLACEHOLDER,
         location: GLOBAL_PLACEHOLDERS.THREAD_LOCATION_PLACEHOLDER,
+        summary: GLOBAL_PLACEHOLDERS.THREAD_SUMMARY_PLACEHOLDER,
       };
       threadRef = userThreadSnapshot.docs[0].ref;
       await updateDoc(threadRef, updateData);
     } else {
       // Create new chat document with custom ID
-      const threadData: ChatData = {
+      const threadData: ThreadData = {
         userID: userID,
         threadID: threadID,
         title: "test title",
@@ -69,6 +70,7 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
         tags: [],
         topic: null,
         location: null,
+        summary: null,
       };
 
       // Use setDoc with custom ID instead of addDoc
@@ -132,10 +134,17 @@ export const retrieveMessagesFromDB = async (threadID: string) => {
   return messagesSnapshot.docs.map((doc) => doc.data());
 };
 
-export const retrieveThreadMetaData = async (threadID: string) => {
+export const retrieveThreadMetaDataByThreadID = async (threadID: string) => {
   const threadRef = doc(db, "threads", threadID);
   const threadSnapshot = await getDoc(threadRef);
   return threadSnapshot.data();
+};
+
+export const retrieveThreadMetaDataByTopic = async (topic: string) => {
+  const threadsCollection = collection(db, "threads");
+  const threadsQuery = query(threadsCollection, where("topic", "==", topic));
+  const threadsSnapshot = await getDocs(threadsQuery);
+  return threadsSnapshot.docs.map((doc) => doc.data());
 };
 
 export const retrieveAllTopics = async () => {
@@ -146,3 +155,27 @@ export const retrieveAllTopics = async () => {
   return topicsSnapshot.docs.map((doc) => doc.data());
 };
 
+export const retrieveTopicData = async (topic: string) => {
+  const topicsRef = collection(db, "topics");
+  const q = query(topicsRef, where("topic", "==", topic));
+  const querySnapshot = await getDocs(q);
+  if (querySnapshot.empty) {
+    return null;
+  }
+  // Return the first matching document
+  return querySnapshot.docs[0].data();
+};
+
+export const retrieveThreadMessages = async (threadID: string) => {
+  const messagesCollection = collection(db, "threads", threadID, "messages");
+  const messagesQuery = query(messagesCollection);
+  const messagesSnapshot = await getDocs(messagesQuery);
+  return messagesSnapshot.docs.map((doc) => doc.data());
+};
+
+export const retrieveMessagesByThreadID = async (threadID: string) => {
+  const messagesCollection = collection(db, "threads", threadID, "messages");
+  const messagesQuery = query(messagesCollection);
+  const messagesSnapshot = await getDocs(messagesQuery);
+  return messagesSnapshot.docs.map((doc) => doc.data());
+};

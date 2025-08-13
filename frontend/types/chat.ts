@@ -1,6 +1,6 @@
 import { MessageStatus, ThreadUserMessagePart } from "@assistant-ui/react";
 
-export interface ChatData {
+export interface ThreadData {
   userID: string;
   threadID: string;
   title: string;
@@ -11,6 +11,7 @@ export interface ChatData {
   headId: string | null;
   topic: string | null;
   location: string | null;
+  summary: string | null;
 }
 
 export interface MessageData {

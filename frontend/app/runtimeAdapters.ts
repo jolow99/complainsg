@@ -11,9 +11,9 @@ import {
   saveMessageToDB,
   retrieveThreadsFromDB,
   retrieveMessagesFromDB,
-  retrieveThreadMetaData,
+  retrieveThreadMetaDataByThreadID,
 } from "@/lib/database";
-import { ChatData } from "@/types/chat";
+import { ThreadData } from "@/types/chat";
 import { parseSSEStream } from "./runtimeUtils";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -114,7 +114,7 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
 
     // // Create new document in chats collection with the provided ID
     try {
-      const threadData: ChatData = {
+      const threadData: ThreadData = {
         userID: GLOBAL_PLACEHOLDERS.USER_ID_PLACEHOLDER,
         threadID: remoteThreadId,
         title: "New Chat",
@@ -125,6 +125,7 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
         headId: null,
         topic: null,
         location: null,
+        summary: null,
       };
 
       // Create the chat document in Firestore
@@ -181,7 +182,7 @@ export function createThreadHistoryAdapter(
       // From DB, load messages
       if (id.startsWith("thread_")) {
         const databaseMessages = await retrieveMessagesFromDB(id);
-        const threadMetaData = (await retrieveThreadMetaData(id)) as ChatData;
+        const threadMetaData = (await retrieveThreadMetaDataByThreadID(id)) as ThreadData;
 
         // Convert DatabaseMessageObject[] to ExportedMessageRepositoryItem[]
         const exportedMessages: ExportedMessageRepositoryItem[] =
