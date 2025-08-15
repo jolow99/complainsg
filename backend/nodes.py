@@ -20,6 +20,8 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         return inputs
     async def exec_async(self, inputs):
         has_been_summarized = False
+        to_generate_topic = False
+    
         # All 3 need to be filled to end the flow
         complaint_topic = inputs.get("complaint_topic", "")
         complaint_location = inputs.get("complaint_location", {})
@@ -32,6 +34,8 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         # If no missing fields, this has been summarized before
         if not missing_fields:
             has_been_summarized = True
+        if inputs.get("complaint_topic", ""):
+            to_generate_topic = True
         
          # Retrieve all documents from the 'topics' collection
         topics_ref = db.collection('topics')
@@ -80,9 +84,7 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
             try:
                 result = json.loads(response)
                 
-                # Check if LLM wants to continue
-                if "status" in result and result["status"] == "continue":
-                    return "continue"
+                print(f"🔍 DATA EXTRACTION NODE: Result = {result}")
                 
                 # Update inputs with extracted data
                 for key, value in result.items():
@@ -94,14 +96,24 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
                 complaint_topic = inputs.get("complaint_topic", "")
                 complaint_location = inputs.get("complaint_location", "")
                 complaint_summary = inputs.get("complaint_summary", "")
+                
+                # If topic has just been generated AND there is a new topic AND it was not one of the existing topics, generate a new topic document
+                if to_generate_topic and inputs.get("complaint_topic", "") and (inputs.get("complaint_topic", "") not in topic_list):
+                    # Create a new topic document in the 'topics' collection
+                    new_topic_ref = topics_ref.document()
+                    new_topic_data = {
+                        "topic": complaint_topic,
+                        "summary": complaint_summary,
+                        "imageURL": "https://firebasestorage.googleapis.com/v0/b/complainsg-b0b10.firebasestorage.app/o/Default_Cuphead.png?alt=media"
+                    }
+                    new_topic_ref.set(new_topic_data)
+                    print(f"🔍 DATA EXTRACTION NODE: Created new topic document = {new_topic_data}")
                         
             except json.JSONDecodeError:
                 print("❌ DATA EXTRACTION NODE: Failed to parse JSON response from LLM")
                 print(f"❌ DATA EXTRACTION NODE: Raw response was: {response}")
                 return "continue"
             
-       
-
         result = {
             "complaint_topic": complaint_topic,
             "complaint_location": complaint_location,
