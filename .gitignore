@@ -9,6 +9,7 @@ backend/dist/
 backend/wheels/
 backend/*.egg-info
 backend/complainsg-venv
+backend/complainsg_firestorekey.json
 
 # Virtual environments
 backend/.venv

@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   retrieveThreadMetaDataByTopic,
   retrieveTopicData,
@@ -12,15 +13,21 @@ export default function TopicPage() {
   const [topic, setTopic] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-
+  const searchParams = useSearchParams();
   const handleThreadClick = (threadID: string) => {
     router.push(`/pulse/topic/thread?threadId=${threadID}`);
   };
 
   useEffect(() => {
     const fetchTopic = async () => {
+      const topicParam = searchParams.get("topic");
+      if (!topicParam) {
+        console.error("No topic parameter found");
+        setLoading(false);
+        return;
+      }
       try {
-        const topicData = await retrieveTopicData("Noise from birds");
+        const topicData = await retrieveTopicData(topicParam);
         console.log("🔍 TOPIC PAGE: topicData =", topicData);
         setTopic(topicData);
       } catch (error) {
@@ -32,7 +39,13 @@ export default function TopicPage() {
 
     // Returns array with threadID, topic, summary, imageURL
     const fetchThreadMetaData = async () => {
-      const threads = await retrieveThreadMetaDataByTopic("Noise from birds");
+      const topicParam = searchParams.get("topic");
+      if (!topicParam) {
+        console.error("No topic parameter found");
+        return;
+      }
+      console.log("🔍 TOPIC PAGE: topicParam =", topicParam);
+      const threads = await retrieveThreadMetaDataByTopic(topicParam);
       setThreads(threads);
     };
 
@@ -72,7 +85,7 @@ export default function TopicPage() {
 
             <div className="flex-shrink-0">
               <img
-                src="/Plane_Cuphead.png"
+                src={topic.imageURL || "/Plane_Cuphead.png"}
                 alt="Topic illustration"
                 className="w-64 h-64 object-contain drop-shadow-lg"
               />

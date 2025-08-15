@@ -2,6 +2,7 @@
 from pocketflow import AsyncNode
 from utils import call_llm_async, stream_llm_async
 import json
+from firebase_config import db
 
 class HTTPDataExtractionNodeAsync(AsyncNode):
     async def prep_async(self, shared):
@@ -27,8 +28,21 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         missing_fields = [key for key, value in inputs.items() if key in ['complaint_topic', 'complaint_location', 'complaint_summary'] and not value]
         print(f"🔍 DATA EXTRACTION NODE: Missing fields = {missing_fields}")
         
+         # Retrieve all documents from the 'topics' collection
+        topics_ref = db.collection('topics')
+        topics_docs = topics_ref.stream()
+        topics = [doc.to_dict() for doc in topics_docs]
+        print(f"🔍 DATA EXTRACTION NODE: Retrieved topics = {topics}")
+        
         if missing_fields:
             print("🔍 DATA EXTRACTION NODE: Calling LLM to extract missing data")
+            # Extract topics from the retrieved documents
+            topic_list = [doc['topic'] for doc in topics]
+            topics_string = ', '.join(topic_list)
+
+            print(f"🔍 DATA EXTRACTION NODE: Topics string = {topics_string}")
+            
+            # Include topics_string in the prompt
             prompt = f"""
             Conversation history: {inputs['conversation_history']}
             
@@ -37,9 +51,12 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
             Extract the following information from the conversation and return it as valid JSON:
             
             Examples:
-            - complaint_topics: "Treatment of construction workers", "Lack of chinese books in the local library", "Long response times for emergency services"
-            - complaint_locations: "Joo Chiat", "Boon Lay", "Bishan"  
+            - complaint_topics: "Treatment of construction workers", "Construction noise", "Noise from birds"
+            - complaint_locations: "Joo Chiat", "Boon Lay", "Bishan"
             - complaint_summary: "Citizen thinks that construction works are not treated fairly. He/She thinks that workers are not paid fairly and are not given enough breaks. He/She thinks that the construction site is not safe and that there are no safety measures in place. Citizen wants to know if the government is doing anything to improve the situation."
+            
+            For complaint_topic, try and match the topic to one of the following topics if possible: {topics_string}
+            If you cant find a match, just make up a topic.
             
             Return ONLY valid JSON in this format:
             {{
@@ -78,6 +95,8 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
                 print(f"❌ DATA EXTRACTION NODE: Raw response was: {response}")
                 return "continue"
             
+       
+
         result = {
             "complaint_topic": complaint_topic,
             "complaint_location": complaint_location,
