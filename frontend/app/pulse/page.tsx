@@ -4,8 +4,6 @@ import { retrieveAllTopics } from "@/lib/database";
 import TopicCard from "@/components/customComponents/topicCard";
 import { useRouter } from "next/navigation";
 
-// Ideas:
-
 export default function Pulse() {
   const [topics, setTopics] = useState<any[]>([]);
   const router = useRouter();
@@ -23,9 +21,9 @@ export default function Pulse() {
           <div 
             key={topic.topic} 
             onClick={() => router.push(`/pulse/topic`)}
-            className="cursor-pointer hover:scale-105 transition-transform duration-200"
+            className="cursor-pointer hover:scale-105 transition-transform duration-200 mb-6"
           >
-            <TopicCard topic={topic.topic} description={topic.summary} />
+            <TopicCard topic={topic.topic} description={topic.summary} imageURL={topic.imageURL}/>
           </div>
         ))}
       </div>

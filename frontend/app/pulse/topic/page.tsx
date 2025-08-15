@@ -20,7 +20,7 @@ export default function TopicPage() {
   useEffect(() => {
     const fetchTopic = async () => {
       try {
-        const topicData = await retrieveTopicData("Noise from planes");
+        const topicData = await retrieveTopicData("Noise from birds");
         console.log("🔍 TOPIC PAGE: topicData =", topicData);
         setTopic(topicData);
       } catch (error) {
@@ -32,7 +32,7 @@ export default function TopicPage() {
 
     // Returns array with threadID, topic, summary, imageURL
     const fetchThreadMetaData = async () => {
-      const threads = await retrieveThreadMetaDataByTopic("Noise from planes");
+      const threads = await retrieveThreadMetaDataByTopic("Noise from birds");
       setThreads(threads);
     };
 

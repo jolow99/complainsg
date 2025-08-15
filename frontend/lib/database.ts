@@ -10,7 +10,7 @@ import {
   where,
   getDoc,
 } from "firebase/firestore";
-import { ThreadData } from "@/types/chat";
+import { ThreadData, ThreadMetaData } from "@/types/chat";
 import { ExportedMessageRepositoryItem } from "@/types/types";
 import { GLOBAL_PLACEHOLDERS } from "@/app/constants";
 
@@ -23,13 +23,12 @@ interface ChatMetadata {
 // Still unsure if this is best practice (saving message by message) 
 // Alternatively is to retrieve entire message state in the runtime provider then save the entire state to the DB everytime we post
 // But that also seems like wasted bandwidth esp the chat is long
-export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, userID: string = "ryan", threadID: string = "123") => {
+export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, userID: string = "ryan", threadID: string = "123", threadMetaData: ThreadMetaData = {}) => {
 
   // Possible race condition: 
   try {
     // Query chats collection for document with both chatID and userID
     const threadsCollection = collection(db, "threads");
-    console.log("🔍 DATABASE ADAPTER: threadsCollection =", threadsCollection);
     const userThreadQuery = query(
       threadsCollection,
       where("userID", "==", userID),
@@ -42,18 +41,18 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
     // If chat document exists, reference the old one
     if (!userThreadSnapshot.empty && userThreadSnapshot.docs[0].exists()) {
       // There should be only one chat document with the same userID and chatID
-      // Update existing chat document
       const updateData = {
         updatedAt: new Date(),
-        title: 'Noise from planes',
+        // Put title and topic same for now
+        title: threadMetaData.topic,
         userID: userID, 
         threadID: threadID,
         category: "feedback",
         headId: message.message.id,
         tags: [],
-        topic: GLOBAL_PLACEHOLDERS.THREAD_TOPIC_PLACEHOLDER,
-        location: GLOBAL_PLACEHOLDERS.THREAD_LOCATION_PLACEHOLDER,
-        summary: GLOBAL_PLACEHOLDERS.THREAD_SUMMARY_PLACEHOLDER,
+        topic: threadMetaData.topic,
+        location: threadMetaData.location,
+        summary: threadMetaData.summary,
       };
       threadRef = userThreadSnapshot.docs[0].ref;
       await updateDoc(threadRef, updateData);
@@ -63,7 +62,7 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
         userID: userID,
         threadID: threadID,
         localId: '',
-        title: "test title",
+        title: '',
         createdAt: new Date(),
         updatedAt: new Date(),
         category: "feedback",

@@ -24,7 +24,7 @@ export default function TopicCard({
       </CardHeader>
       <CardAction className="flex flex-col flex-shrink-0 p-6">
         <img
-          src={imageURL || "/Plane_Cuphead.png"}
+          src={imageURL || "/Bird_Cuphead.png"}
           alt="Pulse"
           width={100}
           height={100}

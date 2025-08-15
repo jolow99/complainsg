@@ -34,10 +34,6 @@ export function createMessageAdapter(
 ): ChatModelAdapter {
   return {
     async *run({ messages, abortSignal }) {
-      console.log("xx [RUN] run called");
-      console.log("xx [RUN] localId", threadListItem.id);
-      console.log("xx [RUN] remoteId", threadListItem.remoteId);
-
       // Retrieve threadMetaData from localStorage
       const storage = localStorage.getItem("threadMetaData");
       const metadata = storage ? JSON.parse(storage) : {};
@@ -133,8 +129,6 @@ export function createMessageAdapter(
             const mappedRemote = idMap[threadListItem.id];
             saveKey = mappedRemote || threadListItem.id;
           }
-          console.log("xx [RUN] saveKey", saveKey);
-          console.log("xx [RUN] item.data", item.data);
           metaDataObj[saveKey] = {
             topic: item.data.threadMetaData["complaint_topic"] || "",
             summary: item.data.threadMetaData["complaint_summary"] || "",
@@ -325,10 +319,19 @@ export function createThreadHistoryAdapter(
         threadId = id;
       }
 
+      const metadata = localStorage.getItem("threadMetaData");
+      const metaDataObj = metadata ? JSON.parse(metadata) : {};
+      const threadMetaData = metaDataObj[threadId];
+
       saveMessageToDB(
         message,
         GLOBAL_PLACEHOLDERS.USER_ID_PLACEHOLDER,
-        threadId
+        threadId,
+        threadMetaData ?? {
+          topic: "",
+          summary: "",
+          location: "",
+        }
       );
     },
   };
