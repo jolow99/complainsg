@@ -1,6 +1,7 @@
 import asyncio
 import json
 import uuid
+from time import sleep
 
 from fastapi import FastAPI, Request, WebSocket, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,43 +31,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    # This function is untouched as per the instructions.
-    await websocket.accept()
-
-    welcome_message = {
-        "type": "connection",
-        "message": "Hello! I'm here to help you with your complaint. Please describe your complaint in detail!",
-    }
-    await websocket.send_text(json.dumps(welcome_message))
-
-    from flow import create_streaming_chat_flow
-    shared_store = {
-        "complaint": "",
-        "websocket": websocket,
-        "conversation_history": [],
-        "latest_user_message": "",
-        "latest_assistant_message": "",
-        "status": "continue",
-        "final_summary": "",
-    }
-    flow = create_streaming_chat_flow()
-    await flow.run_async(shared_store)
-
-
 async def run_flow(shared_store: dict):
     flow = generate_or_summarize_flow()
     await flow.run_async(shared_store)
 
-
 # Kick off flow for existing task
+# The curently way of procesing metadata is having the serve send the thread metadata store back to the client (even if it empty)
+# Even if the client already has the metadata, it needs to send it back to the server so the server can summarize the thread / tell the user the thread has ended
+# While it seems like wasted bandwidth sending back and forth, this is to maintain statelessness of each task and to ensure that metadata/threads/messages are not stored in server memory making the system more scalable/robust
 @app.post("/api/chat")
 async def chat_endpoint(request: Request, background_tasks: BackgroundTasks):
     data = await request.json()
-    # HARD CODED TASK ID FOR NOW
-    task_id = "123"
+    
+    # Task ID for client reference
+    task_id = f"task_{uuid.uuid4().hex[:8]}"
     
     # Use lock to prevent race conditions
     async with task_creation_lock:
@@ -77,23 +55,26 @@ async def chat_endpoint(request: Request, background_tasks: BackgroundTasks):
             task_queues[task_id] = message_queue
             print(f"✅ Created new queue for task {task_id}")
         else:
-            message_queue = task_queues[task_id]
-            print(f"✅ Using existing queue for task {task_id}")
+            raise Exception(f"Task {task_id} already exists")
+            
+    # Populate dictionary with task metadata from POST
+    print(f"🔍 DATA: {data}")
+    
+    task_metadata[task_id] = {
+        "complaint_topic": data.get("threadMetaData", {}).get("topic", ""),
+        "complaint_summary": data.get("threadMetaData", {}).get("summary", ""),
+        "complaint_location": data.get("threadMetaData", {}).get("location", ""),
+    }
     
     # Define all shared parameters here and kick off the flow
-    shared_store = {
-        "complaint_topic": data.get("complaint_topic", ""),
-        "complaint_metadata": data.get("complaint_metadata", {}),
+    shared_store = {    
         "conversation_history": data.get("messages", []),
+        # Reference to queue for streaming response (for that id)
         "message_queue": message_queue,
         "task_id": task_id,
         "status": "continue",
-    }
-    
-    # Initialize metadata storage for this task using the shared_store values
-    task_metadata[task_id] = {
-        "complaint_topic": shared_store["complaint_topic"],
-        "complaint_metadata": shared_store["complaint_metadata"],
+        # Reference to dictionary (for that id)
+        "task_metadata": task_metadata[task_id],
     }
     
     print(f"🚀 Starting background flow for task {task_id}")
@@ -133,16 +114,16 @@ async def stream_endpoint(task_id: str):
         try:
             while True:
                 message = await queue.get()
-                print(f"📨 Got message from queue: {message}")
                 # If message is done, queue will have None at the end
+                print(f"🔍 Task metadata: {task_metadata[task_id]}")
                 if message is None:
                     print(f"🏁 End of stream for task {task_id}")
-                    # Send metadata from storage instead of hardcoded values
+                    
+                    # Metadata is generated before stream, but only retrieve after stream is done to prevent race condition
                     stored_metadata = task_metadata.get(task_id, {})
                     metadata = {
                         "type": "metadata",
-                        "complaintTopic": stored_metadata.get("complaint_topic", ""), 
-                        "complaintMetadata": stored_metadata.get("complaint_metadata", {})
+                        "threadMetaData": stored_metadata
                     }
                     
                     print(f"🔍 Sending metadata: {metadata}")

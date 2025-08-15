@@ -3,6 +3,7 @@ import { MessageStatus, ThreadUserMessagePart } from "@assistant-ui/react";
 export interface ThreadData {
   userID: string;
   threadID: string;
+  localId: string;
   title: string;
   createdAt: Date;
   updatedAt: Date;
@@ -19,7 +20,7 @@ export interface MessageData {
   content: string;
   timestamp: Date;
   messageIndex: number;
-} 
+}
 
 export interface DatabaseMessageObject {
   id: string;
@@ -30,5 +31,11 @@ export interface DatabaseMessageObject {
   createdAt: Date;
   status: MessageStatus;
 }
+
+export type ThreadMetaData = Record<string, {
+  topic: string;
+  summary: string;
+  location: string;
+}>;
 
 export type MessageRole = "user" | "assistant" | "system" | "data";

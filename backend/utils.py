@@ -12,6 +12,7 @@ load_dotenv()
 QWEN_THINKING = "qwen/qwen3-235b-a22b-thinking-2507"
 QWEN_30B = "qwen/qwen3-30b-a3b:free"
 CLAUDE_SONNET = "claude-sonnet-4-20250514"
+ARCEE_SPOTLIGHT = "arcee-ai/spotlight"
 
 def call_llm(prompt):
     anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -48,7 +49,7 @@ def call_llm(prompt):
 
 async def stream_llm_async(
     messages,
-    model=QWEN_30B,
+    model=ARCEE_SPOTLIGHT,
     api_key=os.environ.get("QWEN_30B"),
     base_url="https://openrouter.ai/api/v1",
 ):
@@ -64,7 +65,7 @@ async def stream_llm_async(
         temperature=0.7,
         extra_body={"max_tokens": 1024},
     )
-    print('Beginning stream...')
+    print('Beginning stream with prompt: ', messages)
     
     async for chunk in stream:
         if chunk.choices[0].delta.content is not None:

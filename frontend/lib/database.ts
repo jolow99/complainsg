@@ -62,6 +62,7 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
       const threadData: ThreadData = {
         userID: userID,
         threadID: threadID,
+        localId: '',
         title: "test title",
         createdAt: new Date(),
         updatedAt: new Date(),
