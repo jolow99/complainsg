@@ -3,6 +3,7 @@ from pocketflow import AsyncNode
 from utils import call_llm_async, stream_llm_async
 import json
 from firebase_config import db
+import asyncio
 
 class HTTPDataExtractionNodeAsync(AsyncNode):
     async def prep_async(self, shared):
@@ -18,7 +19,7 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         print(f"🔍 DATA EXTRACTION NODE: Current inputs = {inputs}")
         return inputs
     async def exec_async(self, inputs):
-        
+        has_been_summarized = False
         # All 3 need to be filled to end the flow
         complaint_topic = inputs.get("complaint_topic", "")
         complaint_location = inputs.get("complaint_location", {})
@@ -27,6 +28,10 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         # Check if any required metadata is missing
         missing_fields = [key for key, value in inputs.items() if key in ['complaint_topic', 'complaint_location', 'complaint_summary'] and not value]
         print(f"🔍 DATA EXTRACTION NODE: Missing fields = {missing_fields}")
+        
+        # If no missing fields, this has been summarized before
+        if not missing_fields:
+            has_been_summarized = True
         
          # Retrieve all documents from the 'topics' collection
         topics_ref = db.collection('topics')
@@ -100,14 +105,14 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         result = {
             "complaint_topic": complaint_topic,
             "complaint_location": complaint_location,
-            "complaint_summary": complaint_summary
+            "complaint_summary": complaint_summary,
+            "has_been_summarized": has_been_summarized
         }
         print(f"🔍 DATA EXTRACTION NODE: Final result = {result}")
         return result
     
     async def post_async(self, shared, prep_res, exec_res):
         print("🔍 DATA EXTRACTION NODE: post_async() called")
-        
         print(f"🔍 DATA EXTRACTION NODE: exec_res = {exec_res}")
         
         # Populate task metadata with extracted data
@@ -115,10 +120,13 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         shared["task_metadata"]["complaint_location"] = exec_res.get("complaint_location")
         shared["task_metadata"]["complaint_summary"] = exec_res.get("complaint_summary")
         
+        if exec_res.get("has_been_summarized"):
+            return "reject"
+        
         print(f"🔍 DATA EXTRACTION NODE: task_metadata = {shared['task_metadata']}")
         if exec_res.get("complaint_topic") and exec_res.get("complaint_location") and exec_res.get("complaint_summary"):
             print("🔍 DATA EXTRACTION NODE: All fields complete - returning 'end'")
-            return "end"
+            return "summarize"
         else:
             print("🔍 DATA EXTRACTION NODE: Some fields missing - returning 'continue'")
             return 'continue'
@@ -170,6 +178,7 @@ Based on this conversation history and the data I need, suggest the next clarify
 
 class HTTPSummarizerNodeAsync(AsyncNode):
     async def prep_async(self, shared):
+        print("🔍 SUMMARIZER NODE: prep_async() called")
         print('shared: conversation_history', shared.get("conversation_history"))
         
         return {
@@ -200,15 +209,13 @@ Write a short, clear summary of the complaint as a single paragraph.
 
 class HTTPRejectionNodeAsync(AsyncNode):
     async def prep_async(self, shared):
-        print("🔍 PREP: Rejection Node")
+        print("🔍 REJECTION NODE: prep_async() called")
         queue = shared.get("message_queue")
         return {"queue": queue}
     
-    async def exec_async(self, inputs):
-        import asyncio
-        
+    async def exec_async(self, inputs):        
         # Response text
-        response_text = "Seems like this thread has ended. Create a new chat if you want to start anther complaint!"
+        response_text = "This complaint thread has ended. Create a new chat if you want to start anther complaint!"
         
         queue = inputs.get("queue")
         full_response = ""
