@@ -64,6 +64,7 @@ async def chat_endpoint(request: Request, background_tasks: BackgroundTasks):
         "complaint_topic": data.get("threadMetaData", {}).get("topic", ""),
         "complaint_summary": data.get("threadMetaData", {}).get("summary", ""),
         "complaint_location": data.get("threadMetaData", {}).get("location", ""),
+        "complaint_quality": data.get("threadMetaData", {}).get("quality", 0),
     }
     
     # Define all shared parameters here and kick off the flow
@@ -104,7 +105,9 @@ async def stream_endpoint(task_id: str):
             print(f"Task {task_id} not found, creating metadata...")
             task_metadata[task_id] = {
                 "complaint_topic": "",
-                "complaint_metadata": {}
+                "complaint_quality": 0,
+                "complaint_summary": "",
+                "complaint_location": ""
             }
             print(f"✅ Metadata created for task {task_id}")
 
@@ -115,7 +118,6 @@ async def stream_endpoint(task_id: str):
             while True:
                 message = await queue.get()
                 # If message is done, queue will have None at the end
-                print(f"🔍 Task metadata: {task_metadata[task_id]}")
                 if message is None:
                     print(f"🏁 End of stream for task {task_id}")
                     

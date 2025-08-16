@@ -5,9 +5,10 @@ import json
 from firebase_config import db
 import asyncio
 
+complaint_threshold = 4
+
 class HTTPDataExtractionNodeAsync(AsyncNode):
     async def prep_async(self, shared):
-        print("🔍 DATA EXTRACTION NODE: prep_async() called")
         inputs = {
             # Prep history
             "conversation_history": shared["conversation_history"],
@@ -15,6 +16,7 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
             "complaint_topic": shared.get("task_metadata", {}).get("complaint_topic", ""),
             "complaint_summary": shared.get("task_metadata", {}).get("complaint_summary", ""),
             "complaint_location": shared.get("task_metadata", {}).get("complaint_location", ""),
+            "complaint_quality": shared.get("task_metadata", {}).get("complaint_quality", 0),
         }
         print(f"🔍 DATA EXTRACTION NODE: Current inputs = {inputs}")
         return inputs
@@ -26,15 +28,27 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         complaint_topic = inputs.get("complaint_topic", "")
         complaint_location = inputs.get("complaint_location", {})
         complaint_summary = inputs.get("complaint_summary", "")
+        complaint_quality = inputs.get("complaint_quality", 0)
+
+        # Check if any required metadata is missing (and if the complaint quality is below 3)
+        missing_fields = []
+        for key, value in inputs.items():
+            if key in ['complaint_topic', 'complaint_location', 'complaint_summary', 'complaint_quality']:
+                if not value:
+                    missing_fields.append(key)
+                if key == 'complaint_quality' and value < complaint_threshold:
+                    missing_fields.append(key)
         
-        # Check if any required metadata is missing
-        missing_fields = [key for key, value in inputs.items() if key in ['complaint_topic', 'complaint_location', 'complaint_summary'] and not value]
         print(f"🔍 DATA EXTRACTION NODE: Missing fields = {missing_fields}")
         
         # If no missing fields, this has been summarized before
         if not missing_fields:
             has_been_summarized = True
-        if inputs.get("complaint_topic", ""):
+            
+        print(f"🔍 DATA EXTRACTION NODE: inputs.get('complaint_topic', '') = {complaint_topic}")
+            
+        if not inputs.get("complaint_topic", ""):
+            print("🔍 DATA EXTRACTION NODE: to_generate_topic = True")
             to_generate_topic = True
         
          # Retrieve all documents from the 'topics' collection
@@ -63,15 +77,30 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
             - complaint_topics: "Treatment of construction workers", "Construction noise", "Noise from birds"
             - complaint_locations: "Joo Chiat", "Boon Lay", "Bishan"
             - complaint_summary: "Citizen thinks that construction works are not treated fairly. He/She thinks that workers are not paid fairly and are not given enough breaks. He/She thinks that the construction site is not safe and that there are no safety measures in place. Citizen wants to know if the government is doing anything to improve the situation."
+            - complaint_quality: 3
             
             For complaint_topic, try and match the topic to one of the following topics if possible: {topics_string}
             If you cant find a match, just make up a topic.
+            
+            For the complaint_quality: Give a number based on the productivity and actionability of the complaint. Consider:
+                - Is the issue specific and actionable by government?
+                - Is there sufficient detail for policymakers to understand?
+                - Does it describe community impact or broader implications?
+                - Is the concern constructive rather than just emotional venting?
+            Follow this scale:
+                1 = Not productive (vague, personal, or outside government scope)
+                2 = Minimal productivity (lacks detail or context)
+                3 = Somewhat productive (has potential but needs more information)
+                4 = Productive (clear, actionable, policy-relevant)
+                5 = Very productive (specific, impactful, well-detailed)
+            
             
             Return ONLY valid JSON in this format:
             {{
                 "complaint_topic": "extracted topic or null",
                 "complaint_location": "extracted location or null", 
-                "complaint_summary": "extracted summary or null"
+                "complaint_summary": "extracted summary or null",
+                "complaint_quality": "extracted quality or null"
             }}
             
             If you cannot extract a field, set it to null.
@@ -96,10 +125,17 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
                 complaint_topic = inputs.get("complaint_topic", "")
                 complaint_location = inputs.get("complaint_location", "")
                 complaint_summary = inputs.get("complaint_summary", "")
+                complaint_quality = inputs.get("complaint_quality", 0)
+                
+                print(f"🔍 DATA EXTRACTION NODE: to_generate_topic = {to_generate_topic}")
+                print(f"🔍 DATA EXTRACTION NODE: inputs.get('complaint_topic', '') = {inputs.get('complaint_topic', '')}")
+                print(f"🔍 DATA EXTRACTION NODE: topic_list = {topic_list}")
+                print(f"🔍 DATA EXTRACTION NODE: complaint_quality = {complaint_quality}")
                 
                 # If topic has just been generated AND there is a new topic AND it was not one of the existing topics, generate a new topic document
                 if to_generate_topic and inputs.get("complaint_topic", "") and (inputs.get("complaint_topic", "") not in topic_list):
                     # Create a new topic document in the 'topics' collection
+                    
                     new_topic_ref = topics_ref.document()
                     new_topic_data = {
                         "topic": complaint_topic,
@@ -118,6 +154,7 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
             "complaint_topic": complaint_topic,
             "complaint_location": complaint_location,
             "complaint_summary": complaint_summary,
+            "complaint_quality": complaint_quality,
             "has_been_summarized": has_been_summarized
         }
         print(f"🔍 DATA EXTRACTION NODE: Final result = {result}")
@@ -131,12 +168,13 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         shared["task_metadata"]["complaint_topic"] = exec_res.get("complaint_topic")
         shared["task_metadata"]["complaint_location"] = exec_res.get("complaint_location")
         shared["task_metadata"]["complaint_summary"] = exec_res.get("complaint_summary")
+        shared["task_metadata"]["complaint_quality"] = exec_res.get("complaint_quality")
         
         if exec_res.get("has_been_summarized"):
             return "reject"
         
         print(f"🔍 DATA EXTRACTION NODE: task_metadata = {shared['task_metadata']}")
-        if exec_res.get("complaint_topic") and exec_res.get("complaint_location") and exec_res.get("complaint_summary"):
+        if exec_res.get("complaint_topic") and exec_res.get("complaint_location") and exec_res.get("complaint_summary") and exec_res.get("complaint_quality") > complaint_threshold:
             print("🔍 DATA EXTRACTION NODE: All fields complete - returning 'end'")
             return "summarize"
         else:
@@ -154,6 +192,7 @@ class HTTPGenerateNodeAsync(AsyncNode):
             "complaint_topic": shared.get("task_metadata", {}).get("complaint_topic", ""),
             "complaint_summary": shared.get("task_metadata", {}).get("complaint_summary", ""),
             "complaint_location": shared.get("task_metadata", {}).get("complaint_location", ""),
+            "complaint_quality": shared.get("task_metadata", {}).get("complaint_quality", 0),
             "queue": shared.get("message_queue")
         }
         return inputs
@@ -162,19 +201,24 @@ class HTTPGenerateNodeAsync(AsyncNode):
         
         queue = inputs.get("queue")
         
-        missing_fields = [key for key, value in inputs.items() if key in ['complaint_topic', 'complaint_location', 'complaint_summary'] and not value]
+        missing_fields = [key for key, value in inputs.items() if key in ['complaint_topic', 'complaint_location', 'complaint_summary', 'complaint_quality'] and not value]
         print(f"🔍 GENERATE NODE: Missing fields = {missing_fields}")
         
         if missing_fields:
             print("🔍 GENERATE NODE: Calling LLM to generate question")
         
         prompt = f"""
-Conversation history: {inputs['conversation_history']}
+            You are a helpful assistant that is trying to understand a citizen complaint by asking a single question
+            
+            Past conversation history: {inputs['conversation_history']}
 
-Missing Data: {', '.join(missing_fields)}
+            Missing Data: {', '.join(missing_fields)}
+            Complaint Quality: {inputs.get("complaint_quality", 0)}
 
-Based on this conversation history and the data I need, suggest the next clarifying question to better understand the complaint and to get the data I want. Only output the question.
-"""
+            If the complaint quality is 3 or below, you want the user to provide more information. The question should probe the user to provide more information and details to improve the clarity of the complaint.
+
+            Suggest the next clarifying question to better understand the complaint and to get the data I want. Only output the question.
+            """
         full_response = ""
         async for chunk in stream_llm_async([{"role": "user", "content": prompt}]):
             if chunk:
@@ -199,13 +243,13 @@ class HTTPSummarizerNodeAsync(AsyncNode):
         }
     async def exec_async(self, inputs):
         prompt = f"""
-You are summarizing a citizen complaint conversation for processing by a government agency.
+            You are summarizing a citizen complaint conversation for processing by a government agency.
 
-Conversation history:
-{inputs["conversation_history"]}
+            Conversation history:
+            {inputs["conversation_history"]}
 
-Write a short, clear summary of the complaint as a single paragraph.
-"""
+            Write a short, clear summary of the complaint as a single paragraph. Start the parapgraph with: Your complaint has been logged!
+            """
         full_response = ""
         queue = inputs.get("queue")
         async for chunk in stream_llm_async([{"role": "user", "content": prompt}]):

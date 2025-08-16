@@ -13,6 +13,7 @@ export interface ThreadData {
   topic: string | null;
   location: string | null;
   summary: string | null;
+  quality: number;
 }
 
 export interface MessageData {
@@ -36,6 +37,7 @@ export type ThreadMetaData = Record<string, {
   topic: string;
   summary: string;
   location: string;
+  quality: number;
 }>;
 
 export type MessageRole = "user" | "assistant" | "system" | "data";

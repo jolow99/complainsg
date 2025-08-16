@@ -14,6 +14,7 @@ export default function Pulse() {
 
   useEffect(() => {
     retrieveAllTopics().then(async (topics) => {
+      console.log("🔍 PULSE PAGE: topics =", topics);
       const topicsWithThreads = [];
       for (const topic of topics) {
         const threads = await retrieveThreadMetaDataByTopic(topic.topic);
@@ -22,6 +23,7 @@ export default function Pulse() {
           topicsWithThreads.push(topic);
         }
       }
+      console.log("🔍 PULSE PAGE: topicsWithThreads =", topicsWithThreads);
       setTopics(topicsWithThreads);
     });
   }, []);

@@ -53,6 +53,7 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
         topic: threadMetaData.topic,
         location: threadMetaData.location,
         summary: threadMetaData.summary,
+        quality: threadMetaData.quality,
       };
       threadRef = userThreadSnapshot.docs[0].ref;
       await updateDoc(threadRef, updateData);
@@ -71,6 +72,7 @@ export const saveMessageToDB = async (message: ExportedMessageRepositoryItem, us
         topic: null,
         location: null,
         summary: null,
+        quality: 0,
       };
 
       // Use setDoc with custom ID instead of addDoc

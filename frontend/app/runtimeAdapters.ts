@@ -67,6 +67,7 @@ export function createMessageAdapter(
                 topic: "",
                 summary: "",
                 location: "",
+                quality: 0,
               },
       };
 
@@ -133,6 +134,7 @@ export function createMessageAdapter(
             topic: item.data.threadMetaData["complaint_topic"] || "",
             summary: item.data.threadMetaData["complaint_summary"] || "",
             location: item.data.threadMetaData["complaint_location"] || "",
+            quality: item.data.threadMetaData["complaint_quality"] || 0,
           };
 
           console.log("xx [RUN] metadata", metaDataObj);
@@ -190,6 +192,7 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
         topic: null,
         location: null,
         summary: null,
+        quality: 0,
       };
 
       // Create the chat document in Firestore
@@ -331,6 +334,7 @@ export function createThreadHistoryAdapter(
           topic: "",
           summary: "",
           location: "",
+          quality: 0,
         }
       );
     },
