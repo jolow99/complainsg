@@ -5,6 +5,7 @@ import json
 from firebase_config import db
 import asyncio
 
+# If the complaint quality is at or below this threshold, it will try to atttempt to ask more questions
 complaint_threshold = 4
 
 class HTTPDataExtractionNodeAsync(AsyncNode):
@@ -29,6 +30,8 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
         complaint_location = inputs.get("complaint_location", {})
         complaint_summary = inputs.get("complaint_summary", "")
         complaint_quality = inputs.get("complaint_quality", 0)
+        
+        print(f"🔍 DATA EXTRACTION NODE: complaint_quality (pre LLM) = {complaint_quality}")
 
         # Check if any required metadata is missing (and if the complaint quality is below 3)
         missing_fields = []
@@ -39,32 +42,23 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
                 if key == 'complaint_quality' and value < complaint_threshold:
                     missing_fields.append(key)
         
-        print(f"🔍 DATA EXTRACTION NODE: Missing fields = {missing_fields}")
-        
         # If no missing fields, this has been summarized before
         if not missing_fields:
             has_been_summarized = True
             
-        print(f"🔍 DATA EXTRACTION NODE: inputs.get('complaint_topic', '') = {complaint_topic}")
-            
         if not inputs.get("complaint_topic", ""):
-            print("🔍 DATA EXTRACTION NODE: to_generate_topic = True")
             to_generate_topic = True
         
          # Retrieve all documents from the 'topics' collection
         topics_ref = db.collection('topics')
         topics_docs = topics_ref.stream()
         topics = [doc.to_dict() for doc in topics_docs]
-        print(f"🔍 DATA EXTRACTION NODE: Retrieved topics = {topics}")
         
         if missing_fields:
-            print("🔍 DATA EXTRACTION NODE: Calling LLM to extract missing data")
             # Extract topics from the retrieved documents
             topic_list = [doc['topic'] for doc in topics]
             topics_string = ', '.join(topic_list)
 
-            print(f"🔍 DATA EXTRACTION NODE: Topics string = {topics_string}")
-            
             # Include topics_string in the prompt
             prompt = f"""
             Conversation history: {inputs['conversation_history']}
@@ -107,7 +101,6 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
             """
             
             response = await call_llm_async(prompt)
-            print(f"🔍 DATA EXTRACTION NODE: LLM response = {response}")
             
             # Parse response into JSON
             try:
@@ -126,12 +119,7 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
                 complaint_location = inputs.get("complaint_location", "")
                 complaint_summary = inputs.get("complaint_summary", "")
                 complaint_quality = inputs.get("complaint_quality", 0)
-                
-                print(f"🔍 DATA EXTRACTION NODE: to_generate_topic = {to_generate_topic}")
-                print(f"🔍 DATA EXTRACTION NODE: inputs.get('complaint_topic', '') = {inputs.get('complaint_topic', '')}")
-                print(f"🔍 DATA EXTRACTION NODE: topic_list = {topic_list}")
-                print(f"🔍 DATA EXTRACTION NODE: complaint_quality = {complaint_quality}")
-                
+                                
                 # If topic has just been generated AND there is a new topic AND it was not one of the existing topics, generate a new topic document
                 if to_generate_topic and inputs.get("complaint_topic", "") and (inputs.get("complaint_topic", "") not in topic_list):
                     # Create a new topic document in the 'topics' collection
@@ -157,12 +145,11 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
             "complaint_quality": complaint_quality,
             "has_been_summarized": has_been_summarized
         }
-        print(f"🔍 DATA EXTRACTION NODE: Final result = {result}")
         return result
     
     async def post_async(self, shared, prep_res, exec_res):
-        print("🔍 DATA EXTRACTION NODE: post_async() called")
-        print(f"🔍 DATA EXTRACTION NODE: exec_res = {exec_res}")
+        
+        print(f"🔍 DATA EXTRACTION NODE: complaint_quality (post LLM) = {exec_res.get('complaint_quality')}")
         
         # Populate task metadata with extracted data
         shared["task_metadata"]["complaint_topic"] = exec_res.get("complaint_topic")
@@ -184,7 +171,6 @@ class HTTPDataExtractionNodeAsync(AsyncNode):
 
 class HTTPGenerateNodeAsync(AsyncNode):
     async def prep_async(self, shared):
-        print(f"🔍 GENERATE NODE: prep_async() called")
         inputs = {
             # Prep history
             "conversation_history": shared["conversation_history"],
@@ -197,15 +183,11 @@ class HTTPGenerateNodeAsync(AsyncNode):
         }
         return inputs
     async def exec_async(self, inputs):
-        print(f"🔍 GENERATE NODE: exec_async() called")
         
         queue = inputs.get("queue")
         
-        missing_fields = [key for key, value in inputs.items() if key in ['complaint_topic', 'complaint_location', 'complaint_summary', 'complaint_quality'] and not value]
-        print(f"🔍 GENERATE NODE: Missing fields = {missing_fields}")
+        missing_fields = [key for key, value in inputs.items() if key in ['complaint_topic', 'complaint_location', 'complaint_summary'] and not value]
         
-        if missing_fields:
-            print("🔍 GENERATE NODE: Calling LLM to generate question")
         
         prompt = f"""
             You are a helpful assistant that is trying to understand a citizen complaint by asking a single question
@@ -234,9 +216,6 @@ class HTTPGenerateNodeAsync(AsyncNode):
 
 class HTTPSummarizerNodeAsync(AsyncNode):
     async def prep_async(self, shared):
-        print("🔍 SUMMARIZER NODE: prep_async() called")
-        print('shared: conversation_history', shared.get("conversation_history"))
-        
         return {
             "conversation_history": shared["conversation_history"],
             "queue": shared.get("message_queue")
@@ -265,7 +244,6 @@ class HTTPSummarizerNodeAsync(AsyncNode):
 
 class HTTPRejectionNodeAsync(AsyncNode):
     async def prep_async(self, shared):
-        print("🔍 REJECTION NODE: prep_async() called")
         queue = shared.get("message_queue")
         return {"queue": queue}
     
