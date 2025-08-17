@@ -72,7 +72,7 @@ export function createMessageAdapter(
       };
 
       // POST request contains : entire message history + metadata + topic
-      const flowResponse = await fetch("http://localhost:8000/api/chat", {
+      const flowResponse = await fetch("https://complain.sg/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -90,7 +90,7 @@ export function createMessageAdapter(
 
       // Get the stream response with GET
       const response = await fetch(
-        `http://localhost:8000/api/chat/stream/${task_id}`,
+        `https://complain.sg/api/chat/stream/${task_id}`,
         {
           method: "GET",
           headers: {
