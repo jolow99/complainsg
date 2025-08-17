@@ -33,9 +33,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount the static files directory
-app.mount("/", StaticFiles(directory="../frontend/out", html=True), name="static")
-
 async def run_flow(shared_store: dict):
     flow = generate_or_summarize_flow()
     await flow.run_async(shared_store)
@@ -150,3 +147,5 @@ async def stream_endpoint(task_id: str):
                 del task_metadata[task_id]
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
+
+app.mount("/", StaticFiles(directory="../frontend/out", html=True), name="frontend")
