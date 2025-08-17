@@ -21,6 +21,7 @@ task_creation_lock = asyncio.Lock()
 # List of allowed origins (your frontend URL)
 origins = [
     "http://localhost:3000",
+    "https://complain.sg"
 ]
 
 # Add CORSMiddleware to the application
