@@ -24,7 +24,11 @@ jobs:
 
       - name: Sync files to EC2
         run: |
-          rsync -avz --exclude ".git" ./ ubuntu@${{ secrets.EC2_IP }}:/home/ubuntu/complain-sg
+          rsync -avz \
+            --exclude ".git" \
+            --exclude "backend/.env" \
+            --exclude "backend/complainsg_firestorekey.json" \
+            ./ ubuntu@${{ secrets.EC2_IP }}:/home/ubuntu/complain-sg
 
       - name: Deploy on EC2
         uses: appleboy/ssh-action@master
