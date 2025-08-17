@@ -27,17 +27,16 @@ jobs:
           rsync -avz --exclude ".git" ./ ubuntu@${{ secrets.EC2_IP }}:/home/ubuntu/complain-sg
 
       - name: Deploy on EC2
-        run: |
-          ssh ubuntu@${{ secrets.EC2_IP }} << 'EOF'
-          cd /home/ubuntu/complain-sg/backend
-          # Ensure Poetry is installed
-          curl -sSL https://install.python-poetry.org | python3 -
-          export PATH="$HOME/.local/bin:$PATH"
-
-          # Install dependencies from pyproject.toml
-          poetry install --no-root
-
-          # Restart FastAPI server with uvicorn in tmux
-          tmux kill-session -t complain-sg 2>/dev/null
-          tmux new -d -s complain-sg "poetry run uvicorn server:app --host 0.0.0.0 --port 8000"
-          EOF
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/complain-sg/backend
+            curl -sSL https://install.python-poetry.org | python3 -
+            export PATH="$HOME/.local/bin:$PATH"
+            poetry install --no-root
+            tmux kill-session -t complain-sg
+            tmux new-session -d -s complain-sg
+            tmux send-keys -t complain-sg 'cd /home/ubuntu/complain-sg/backend && export PATH="$HOME/.local/bin:$PATH" && poetry run uvicorn server:app --host 0.0.0.0 --port 8000' C-m
