@@ -4,7 +4,7 @@ import {
   ThreadHistoryAdapter,
   ThreadListItemRuntime,
   ThreadListItemState,
-  ThreadMessage,
+  ThreadMessage as AUI_Message,
 } from "@assistant-ui/react";
 import { ThreadMetaData } from "@/types/chat";
 import {
@@ -20,7 +20,7 @@ import {
 } from "@/lib/database";
 import { ThreadData } from "@/types/chat";
 import { parseSSEStream } from "./runtimeUtils";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, DocumentData, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
   ExportedMessageRepository,
@@ -236,7 +236,7 @@ export const myDatabaseAdapter: RemoteThreadListAdapter = {
     console.log("🔍 DATABASE ADAPTER: delete() called", remoteId);
   },
 
-  async generateTitle(remoteId: string, messages: any[]) {
+  async generateTitle(remoteId: string, messages: AUI_Message[]) {
     // TODO: Implement actual title generation
     console.log("🔍 DATABASE ADAPTER: generateTitle() called", remoteId);
     return new ReadableStream();
@@ -263,12 +263,12 @@ export function createThreadHistoryAdapter(
 
       // Convert DatabaseMessageObject[] to ExportedMessageRepositoryItem[]
       const exportedMessages: ExportedMessageRepositoryItem[] =
-        databaseMessages.map((dbMsg: any) => ({
+        databaseMessages.map((dbMsg: DocumentData) => ({
           message: {
             id: dbMsg.id,
             role: dbMsg.role,
             content: dbMsg.content,
-            createdAt: dbMsg.createdAt,
+            createdAt: (dbMsg.createdAt as Timestamp).toDate(),
             metadata: dbMsg.metadata || {},
             // Hardcode status to complete when retrieving from DB, i only save to DB when message is complete
             status: {
@@ -286,8 +286,14 @@ export function createThreadHistoryAdapter(
       // So I have to manually sort it here, and then pass it to the message repository
       const sortedMessages = [...exportedMessages].sort((a, b) => {
         // Use Firestore Timestamp's toDate() method for proper conversion
-        const dateA = (a.message.createdAt as any).toDate();
-        const dateB = (b.message.createdAt as any).toDate();
+        console.log("xx [LOAD] a.message.createdAt", a.message.createdAt);
+        console.log("xx [LOAD] b.message.createdAt", b.message.createdAt);
+        console.log(
+          "xx [LOAD] typeof a.message.createdAt",
+          typeof a.message.createdAt
+        );
+        const dateA = a.message.createdAt as Date;
+        const dateB = b.message.createdAt as Date;
         return dateA.getTime() - dateB.getTime(); // Oldest first
       });
 

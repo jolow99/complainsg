@@ -1,5 +1,4 @@
 import { openai } from "@ai-sdk/openai";
-import { frontendTools } from "@assistant-ui/react-ai-sdk-v4";
 import { streamText } from "ai";
 
 export const runtime = "edge";
@@ -11,13 +10,9 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai("gpt-4o"),
     messages,
-    toolCallStreaming: true,
     system,
-    tools: {
-      ...frontendTools(tools),
-      // add backend tools here
-    },
+    tools,
   });
 
-  return result.toDataStreamResponse();
+  return result.toTextStreamResponse();
 }

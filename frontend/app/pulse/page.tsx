@@ -7,20 +7,25 @@ import {
 import TopicCard from "@/components/customComponents/topicCard";
 import { useRouter } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TopicData } from "@/types/chat";
 
 export default function Pulse() {
-  const [topics, setTopics] = useState<any[]>([]);
+  const [topics, setTopics] = useState<TopicData[]>([]);
   const router = useRouter();
 
   useEffect(() => {
     retrieveAllTopics().then(async (topics) => {
       console.log("🔍 PULSE PAGE: topics =", topics);
-      const topicsWithThreads = [];
+      const topicsWithThreads: TopicData[] = [];
       for (const topic of topics) {
         const threads = await retrieveThreadMetaDataByTopic(topic.topic);
         console.log("🔍 PULSE PAGE: threads =", threads);
         if (threads.length > 0) {
-          topicsWithThreads.push(topic);
+          topicsWithThreads.push({
+            topic: topic.topic,
+            summary: topic.summary,
+            imageURL: topic.imageURL,
+          });
         }
       }
       console.log("🔍 PULSE PAGE: topicsWithThreads =", topicsWithThreads);

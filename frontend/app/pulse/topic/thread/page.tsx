@@ -1,13 +1,65 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { retrieveMessagesByThreadID } from "@/lib/database";
+import { DocumentData } from "firebase/firestore";
+
+type MessageContent = {
+  text: string;
+  type: string;
+};
+
+type Timestamp = {
+  nanoseconds: number;
+  seconds: number;
+};
+
+type MessageData = {
+  content: MessageContent[];
+  createdAt: Timestamp;
+  id: string;
+  metadata: {
+    custom: Record<string, string | number | boolean>;
+  };
+  parentId: string | null;
+  role: string;
+};
 
 export default function ThreadPage() {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<MessageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  return (
+    <Suspense fallback={<div>Loading search parameters...</div>}>
+      <ThreadContent
+        loading={loading}
+        error={error}
+        setLoading={setLoading}
+        setError={setError}
+        messages={messages}
+        setMessages={setMessages}
+      />
+    </Suspense>
+  );
+}
+
+function ThreadContent({
+  loading,
+  error,
+  setLoading,
+  setError,
+  messages,
+  setMessages,
+}: {
+  loading: boolean;
+  error: string | null;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setError: React.Dispatch<React.SetStateAction<string | null>>;
+  messages: MessageData[];
+  setMessages: React.Dispatch<React.SetStateAction<MessageData[]>>;
+}) {
   const searchParams = useSearchParams();
   const threadID = searchParams.get("threadId");
 
@@ -21,16 +73,28 @@ export default function ThreadPage() {
 
       try {
         const fetchedMessages = await retrieveMessagesByThreadID(threadID);
-        console.log("🔍 THREAD PAGE: messages =", fetchedMessages);
-        
-        // Sort messages by createdAt to ensure proper order
-        const sortedMessages = fetchedMessages.sort((a, b) => {
+
+        const mappedMessages: MessageData[] = fetchedMessages.map(
+          (msg: DocumentData) => ({
+            content: msg.content,
+            createdAt: msg.createdAt,
+            id: msg.id,
+            metadata: msg.metadata,
+            parentId: msg.parentId,
+            role: msg.role,
+          })
+        );
+
+        const sortedMessages = mappedMessages.sort((a, b) => {
           if (a.createdAt && b.createdAt) {
-            return new Date(a.createdAt.seconds * 1000).getTime() - new Date(b.createdAt.seconds * 1000).getTime();
+            return (
+              new Date(a.createdAt.seconds * 1000).getTime() -
+              new Date(b.createdAt.seconds * 1000).getTime()
+            );
           }
           return 0;
         });
-        
+
         setMessages(sortedMessages);
       } catch (err) {
         console.error("Error fetching messages:", err);
@@ -70,12 +134,13 @@ export default function ThreadPage() {
             Conversation Thread
           </h1>
           <p className="text-gray-600">
-            {messages.length} message{messages.length !== 1 ? 's' : ''} in this conversation
+            {messages.length} message{messages.length !== 1 ? "s" : ""} in this
+            conversation
           </p>
         </div>
 
         <div className="space-y-6">
-          {messages.map((message, index) => (
+          {messages.map((message: MessageData, index: number) => (
             <div
               key={message.id || index}
               className={`flex ${
@@ -95,22 +160,26 @@ export default function ThreadPage() {
                   </span>
                   {message.createdAt && (
                     <span className="text-xs opacity-50 ml-2">
-                      {new Date(message.createdAt.seconds * 1000).toLocaleString()}
+                      {new Date(
+                        message.createdAt.seconds * 1000
+                      ).toLocaleString()}
                     </span>
                   )}
                 </div>
-                
+
                 <div className="prose prose-sm max-w-none">
                   {Array.isArray(message.content) ? (
-                    message.content.map((content: any, contentIndex: number) => (
-                      <div key={contentIndex}>
-                        {content.type === "text" && (
-                          <p className="whitespace-pre-wrap leading-relaxed">
-                            {content.text}
-                          </p>
-                        )}
-                      </div>
-                    ))
+                    message.content.map(
+                      (content: MessageContent, contentIndex: number) => (
+                        <div key={contentIndex}>
+                          {content.type === "text" && (
+                            <p className="whitespace-pre-wrap leading-relaxed">
+                              {content.text}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    )
                   ) : (
                     <p className="whitespace-pre-wrap leading-relaxed">
                       {message.content}

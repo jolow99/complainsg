@@ -1,5 +1,11 @@
 import { MessageStatus, ThreadUserMessagePart } from "@assistant-ui/react";
 
+export type TopicData = {
+  topic: string;
+  summary: string;
+  imageURL: string;
+}
+
 export interface ThreadData {
   userID: string;
   threadID: string;

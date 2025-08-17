@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import {
@@ -7,12 +7,47 @@ import {
   retrieveTopicData,
 } from "@/lib/database";
 import MessageCard from "@/components/customComponents/messageCard";
+import { ThreadData, TopicData } from "@/types/chat";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 export default function TopicPage() {
-  const [threads, setThreads] = useState<any>(null);
-  const [topic, setTopic] = useState<any>(null);
+  const [threads, setThreads] = useState<ThreadData[]>([]);
+  const [topic, setTopic] = useState<TopicData | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  return (
+    <Suspense fallback={<div>Loading search parameters...</div>}>
+      <TopicContent
+        threads={threads}
+        setThreads={setThreads}
+        topic={topic}
+        setTopic={setTopic}
+        loading={loading}
+        setLoading={setLoading}
+        router={router}
+      />
+    </Suspense>
+  );
+}
+
+function TopicContent({
+  threads,
+  setThreads,
+  topic,
+  setTopic,
+  loading,
+  setLoading,
+  router,
+}: {
+  threads: ThreadData[];
+  setThreads: React.Dispatch<React.SetStateAction<ThreadData[]>>;
+  topic: TopicData | null;
+  setTopic: React.Dispatch<React.SetStateAction<TopicData | null>>;
+  loading: boolean;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  router: AppRouterInstance;
+}) {
   const searchParams = useSearchParams();
   const handleThreadClick = (threadID: string) => {
     router.push(`/pulse/topic/thread?threadId=${threadID}`);
@@ -29,7 +64,13 @@ export default function TopicPage() {
       try {
         const topicData = await retrieveTopicData(topicParam);
         console.log("🔍 TOPIC PAGE: topicData =", topicData);
-        setTopic(topicData);
+        if (topicData) {
+          setTopic({
+            topic: topicData.topic,
+            summary: topicData.summary,
+            imageURL: topicData.imageURL,
+          });
+        }
       } catch (error) {
         console.error("Error fetching topic:", error);
       } finally {
@@ -46,7 +87,7 @@ export default function TopicPage() {
       }
       console.log("🔍 TOPIC PAGE: topicParam =", topicParam);
       const threads = await retrieveThreadMetaDataByTopic(topicParam);
-      setThreads(threads);
+      setThreads(threads as ThreadData[]);
     };
 
     fetchTopic();
@@ -105,11 +146,11 @@ export default function TopicPage() {
 
             <div className="space-y-4 max-h-[600px] overflow-y-auto">
               {threads && threads.length > 0 ? (
-                threads.map((thread: any) => (
+                threads.map((thread: ThreadData) => (
                   <MessageCard
                     key={thread.threadID}
-                    topic={thread.topic}
-                    description={thread.summary}
+                    topic={thread.topic || ""}
+                    description={thread.summary || ""}
                     threadID={thread.threadID}
                     onClick={() => handleThreadClick(thread.threadID)}
                   />

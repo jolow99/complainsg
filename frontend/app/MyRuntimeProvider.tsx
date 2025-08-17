@@ -18,6 +18,7 @@ import {
 } from "./runtimeAdapters";
 import { ThreadMetaData } from "@/types/chat";
 
+/* eslint-disable react-hooks/rules-of-hooks */
 export function MyRuntimeProvider({
   children,
 }: Readonly<{
@@ -39,6 +40,7 @@ export function MyRuntimeProvider({
 
   // intialize useRemoteThreadListRuntime runtime
   const runtime = useRemoteThreadListRuntime({
+    
     runtimeHook: () => {
       const threadListItem = useThreadListItem();
       const messageAdapter = useMemo(
@@ -99,3 +101,4 @@ export function MyRuntimeProvider({
     </AssistantRuntimeProvider>
   );
 }
+/* eslint-enable react-hooks/rules-of-hooks */

@@ -6,6 +6,7 @@ from time import sleep
 from fastapi import FastAPI, Request, WebSocket, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from flow import generate_or_summarize_flow
 
 app = FastAPI()
@@ -30,6 +31,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount the static files directory
+app.mount("/", StaticFiles(directory="../frontend/out", html=True), name="static")
 
 async def run_flow(shared_store: dict):
     flow = generate_or_summarize_flow()

@@ -93,7 +93,7 @@ export default function Home() {
                   Introducing PulseSG
                 </h2>
                 <p className="text-xl text-gray-600 mb-6">
-                  Our analytics platform that aggregates complaints and community insights to create a comprehensive view of Singapore's concerns.
+                  Our analytics platform that aggregates complaints and community insights to create a comprehensive view of Singapore&apos;s concerns.
                 </p>
                 <div className="space-y-4 text-gray-600">
                   <div className="flex items-start space-x-3">
