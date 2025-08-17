@@ -35,7 +35,7 @@ jobs:
           export PATH="$HOME/.local/bin:$PATH"
 
           # Install dependencies from pyproject.toml
-          poetry install
+          poetry install --no-root
 
           # Restart FastAPI server with uvicorn in tmux
           tmux kill-session -t complain-sg 2>/dev/null

@@ -1,8 +1,7 @@
 [project]
-name = "learning-pocketflow"
+name = "complain-sg"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
+description = "Complain Better"
 requires-python = ">=3.11"
 dependencies = [
     "anthropic>=0.58.2",
