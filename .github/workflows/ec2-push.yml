@@ -29,7 +29,7 @@ jobs:
       - name: Deploy on EC2
         run: |
           ssh ubuntu@${{ secrets.EC2_IP }} << 'EOF'
-          cd /home/ubuntu/complain-sg
+          cd /home/ubuntu/complain-sg/backend
           # Ensure Poetry is installed
           curl -sSL https://install.python-poetry.org | python3 -
           export PATH="$HOME/.local/bin:$PATH"
